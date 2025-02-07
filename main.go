@@ -117,13 +117,6 @@ func computeMerkleRoot(
 
 func main() {
 
-	// var circuit TornadoCashCircuit
-	// r1cs, err := frontend.Compile(ecc.BN254.ScalarField(), r1cs.NewBuilder, &circuit)
-	// if err != nil {
-	// 	panic("Failed to compile the circuit")
-	// }
-	// fmt.Println("TornadoCashCircuit compiled successfully!")
-
 	secret := big.NewInt(123)
 	nullifier := big.NewInt(456)
 
@@ -148,7 +141,6 @@ func main() {
 		NullifierHash: nullifierHash,
 	}
 
-	// todo: fix inputSolver related issues
 	circuit, _ := ecgo.Compile(ecc.BN254.ScalarField(), &TornadoCashCircuit{})
 	c := circuit.GetLayeredCircuit()
 	os.WriteFile("circuit.txt", c.Serialize(), 0o644)
@@ -158,35 +150,4 @@ func main() {
 	if !test.CheckCircuit(c, witness) {
 		panic("verification failed")
 	}
-	// witness, _ := frontend.NewWitness(assignment, ecc.BN254.ScalarField())
-
-	// fmt.Println("Witness assignment created successfully!")
-	// fmt.Println("Leaf: ", leaf.String())
-	// fmt.Println("Root: ", root.String())
-	// fmt.Println("NullifierHash: ", nullifierHash.String())
-
-	// fmt.Println("Setting up Groth16 proving system...")
-	// pk, vk, err := groth16.Setup(r1cs)
-	// if err != nil {
-	// 	log.Fatal("Failed to setup Groth16 proving system")
-	// }
-	// fmt.Println("Groth16 proving system setup successfully!")
-
-	// fmt.Println("Generating proof...")
-	// proof, err := groth16.Prove(r1cs, pk, witness)
-	// if err != nil {
-	// 	log.Fatal("Failed to generate proof")
-	// }
-	// fmt.Println("Proof generated successfully!")
-
-	// publicWitness, err := witness.Public()
-	// if err != nil {
-	// 	log.Fatal("Failed to extract public witness: ", err)
-	// }
-	// fmt.Println("Verifying proof...")
-	// err = groth16.Verify(proof, vk, publicWitness)
-	// if err != nil {
-	// 	log.Fatal("Proof verification failed: ", err)
-	// }
-	// fmt.Println("Proof verified successfully!")
 }
