@@ -1,40 +1,34 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowRightLeft } from "lucide-react"
-import { TOKENS } from "@/constants/tokens"
-import { useWallet } from "@/contexts/WalletContext"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ArrowRightLeft } from "lucide-react";
+import { TOKENS } from "@/constants/tokens";
 
 export default function Deposit() {
-  const [amount, setAmount] = useState("")
-  const [selectedToken, setSelectedToken] = useState(TOKENS[0].symbol)
-  const { address, connectWallet } = useWallet()
+  const [amount, setAmount] = useState("");
+  const [selectedToken, setSelectedToken] = useState(TOKENS[0].symbol);
 
   const handleDeposit = () => {
     // Implement deposit logic here
-    console.log("Deposit:", { amount, token: selectedToken })
-  }
-
-  if (!address) {
-    return (
-      <Card className="max-w-md mx-auto">
-        <CardHeader>
-          <CardTitle>Connect Wallet</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-center mb-4">Please connect your wallet to make a deposit.</p>
-          <Button className="w-full" onClick={connectWallet}>
-            Connect Wallet
-          </Button>
-        </CardContent>
-      </Card>
-    )
-  }
+    console.log("Deposit:", { amount, token: selectedToken });
+  };
 
   return (
     <Card className="max-w-md mx-auto">
@@ -69,11 +63,13 @@ export default function Deposit() {
         </div>
       </CardContent>
       <CardFooter>
-        <Button className="w-full bg-purple-600 hover:bg-purple-700" onClick={handleDeposit}>
+        <Button
+          className="w-full bg-purple-600 hover:bg-purple-700"
+          onClick={handleDeposit}
+        >
           <ArrowRightLeft className="mr-2" /> Deposit {selectedToken}
         </Button>
       </CardFooter>
     </Card>
-  )
+  );
 }
-

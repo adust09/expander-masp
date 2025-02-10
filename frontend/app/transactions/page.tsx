@@ -1,5 +1,12 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 // This would typically come from an API or database
 const transactions = [
@@ -12,7 +19,15 @@ const transactions = [
     status: "Confirmed",
     blockNumber: 12345678,
   },
-  { id: 2, type: "Withdraw", amount: "100", token: "DAI", date: "2023-05-03", status: "Pending", blockNumber: null },
+  {
+    id: 2,
+    type: "Withdraw",
+    amount: "100",
+    token: "DAI",
+    date: "2023-05-03",
+    status: "Pending",
+    blockNumber: null,
+  },
   {
     id: 3,
     type: "Deposit",
@@ -23,7 +38,7 @@ const transactions = [
     blockNumber: 12345680,
   },
   // Add more mock transactions as needed
-]
+];
 
 export default function Transactions() {
   return (
@@ -58,6 +73,5 @@ export default function Transactions() {
         </Table>
       </CardContent>
     </Card>
-  )
+  );
 }
-

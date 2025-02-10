@@ -1,25 +1,40 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Slider } from "@/components/ui/slider"
-import { ArrowRightLeft, Shield } from "lucide-react"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
+import { ArrowRightLeft, Shield } from "lucide-react";
 
 export default function PrivacyMixer() {
-  const [amount, setAmount] = useState(1)
-  const [network, setNetwork] = useState("ethereum")
-  const [note, setNote] = useState("")
+  const [amount, setAmount] = useState(1);
+  const [network, setNetwork] = useState("ethereum");
+  const [note, setNote] = useState("");
 
   const generateNote = () => {
     // この関数は実際にはより複雑な暗号化処理を行うべきです
-    const randomNote = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
-    setNote(randomNote)
-  }
+    const randomNote =
+      Math.random().toString(36).substring(2, 15) +
+      Math.random().toString(36).substring(2, 15);
+    setNote(randomNote);
+  };
 
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100 flex items-center justify-center p-4">
@@ -28,7 +43,9 @@ export default function PrivacyMixer() {
           <CardTitle className="text-2xl font-bold text-center flex items-center justify-center">
             <Shield className="mr-2" /> Privacy Mixer
           </CardTitle>
-          <CardDescription className="text-center text-gray-400">Enhance your transaction privacy</CardDescription>
+          <CardDescription className="text-center text-gray-400">
+            Enhance your transaction privacy
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-2">
@@ -58,7 +75,11 @@ export default function PrivacyMixer() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="recipient">Recipient Address</Label>
-            <Input id="recipient" placeholder="0x..." className="bg-gray-700 border-gray-600" />
+            <Input
+              id="recipient"
+              placeholder="0x..."
+              className="bg-gray-700 border-gray-600"
+            />
           </div>
           <div className="space-y-2">
             <Label>Transaction Type</Label>
@@ -76,7 +97,12 @@ export default function PrivacyMixer() {
           <div className="space-y-2">
             <Label htmlFor="note">Privacy Note</Label>
             <div className="flex space-x-2">
-              <Input id="note" value={note} readOnly className="bg-gray-700 border-gray-600 flex-grow" />
+              <Input
+                id="note"
+                value={note}
+                readOnly
+                className="bg-gray-700 border-gray-600 flex-grow"
+              />
               <Button variant="outline" onClick={generateNote}>
                 Generate
               </Button>
@@ -90,6 +116,5 @@ export default function PrivacyMixer() {
         </CardFooter>
       </Card>
     </div>
-  )
+  );
 }
-

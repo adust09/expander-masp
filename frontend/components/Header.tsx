@@ -1,6 +1,5 @@
-import Link from "next/link"
-import { Shield } from "lucide-react"
-import { ConnectWallet } from "./ConnectWallet"
+import Link from "next/link";
+import { Shield } from "lucide-react";
 
 export default function Header() {
   return (
@@ -31,12 +30,8 @@ export default function Header() {
               Compliance
             </Link>
           </li>
-          <li>
-            <ConnectWallet />
-          </li>
         </ul>
       </nav>
     </header>
-  )
+  );
 }
-
