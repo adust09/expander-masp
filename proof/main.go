@@ -116,7 +116,7 @@ func computeMerkleRoot(
 }
 
 func main() {
-
+	// todo: get the secret and nullifier from the user
 	secret := big.NewInt(123)
 	nullifier := big.NewInt(456)
 
