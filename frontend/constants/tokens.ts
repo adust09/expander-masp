@@ -15,5 +15,4 @@ export const TOKENS = [
     name: "Tether USD",
     address: "0xdac17f958d2ee523a2206206994597c13d831ec7",
   },
-  // Add more tokens as needed
 ];
