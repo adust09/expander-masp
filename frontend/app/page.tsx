@@ -1,7 +1,19 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
+// import { Account } from "@/components/account";
+// import { WalletOptions } from "@/components/wallet-options";
+// import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+// import { useAccount, WagmiProvider } from "wagmi";
+// import { Profile } from "@/components/profile";
+// import { config } from "@/config";
 
+// const queryClient = new QueryClient();
+// function ConnectWallet() {
+//   const { isConnected } = useAccount();
+//   if (isConnected) return <Account />;
+//   return <WalletOptions />;
+// }
 export default function Home() {
   return (
     <div className="text-center">
