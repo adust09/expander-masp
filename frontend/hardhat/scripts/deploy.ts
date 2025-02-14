@@ -35,7 +35,7 @@ async function main() {
   const hash = await deployContract(walletClient, {
     abi,
     account,
-    bytecode: `0x${bytecode}`, //miss?
+    bytecode,
     args: [],
   });
 

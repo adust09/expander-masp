@@ -18,7 +18,7 @@ const hardhatChain = {
 
 const PRIVATE_KEY =
   "0xdf57089febbacf7ba0bc227dafbffa9fc08a93fdc68e1e42411a14efcf23656e";
-const TORNADO_DEPOSIT_ADDRESS = "0x...";
+const TORNADO_DEPOSIT_ADDRESS = "0x73511669fd4de447fed18bb79bafeac93ab7f31f";
 
 const abi = TornadoDepositArtifact.abi;
 
