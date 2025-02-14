@@ -1,10 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-/**
- * @title NaiveIncrementalMerkleTree
- * @dev 簡易的なMerkleツリーを管理するライブラリ
- */
 library NaiveIncrementalMerkleTree {
     struct TreeData {
         uint256 depth;
@@ -37,12 +33,10 @@ library NaiveIncrementalMerkleTree {
 
             for (uint256 i = 0; i < levelSize; i += 2) {
                 if (i + 1 < levelSize) {
-                    // 2つの子を結合してハッシュ
                     nextLevelNodes[i / 2] = keccak256(
                         abi.encodePacked(levelNodes[i], levelNodes[i + 1])
                     );
                 } else {
-                    // 奇数個で余った要素はそのまま
                     nextLevelNodes[i / 2] = levelNodes[i];
                 }
             }
