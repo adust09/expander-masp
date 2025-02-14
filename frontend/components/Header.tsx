@@ -9,7 +9,11 @@ export default function Header() {
           <Shield className="mr-2" />
           Privacy Mixer
         </Link>
+
         <ul className="flex items-center space-x-4">
+          <li>
+            <appkit-button />
+          </li>
           <li>
             <Link href="/deposit" className="hover:text-purple-400">
               Deposit
