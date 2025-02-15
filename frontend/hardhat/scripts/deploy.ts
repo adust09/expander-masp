@@ -28,7 +28,7 @@ async function main() {
   });
 
   const abi = TornadoDepositArtifact.abi;
-  const bytecode = TornadoDepositArtifact.bytecode;
+  const bytecode = TornadoDepositArtifact.bytecode as `0x${string}`;
 
   console.log("Deploying TornadoDeposit...");
 
