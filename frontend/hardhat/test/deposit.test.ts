@@ -4,7 +4,7 @@ import { mainnet } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
 import { writeContract, readContract } from "viem/actions";
 
-import TornadoDepositArtifact from "../artifacts/contracts/TornadoDeposit.sol/TornadoDeposit.json";
+import TornadoArtifact from "../artifacts/contracts/Tornado.sol/Tornado.json";
 
 const hardhatChain = {
   ...mainnet,
@@ -20,7 +20,7 @@ const PRIVATE_KEY =
   "0xdf57089febbacf7ba0bc227dafbffa9fc08a93fdc68e1e42411a14efcf23656e";
 const TORNADO_DEPOSIT_ADDRESS = "0x73511669fd4de447fed18bb79bafeac93ab7f31f";
 
-const abi = TornadoDepositArtifact.abi;
+const abi = TornadoArtifact.abi;
 
 test("Deposit 1 ETH", async () => {
   const account = privateKeyToAccount(PRIVATE_KEY);

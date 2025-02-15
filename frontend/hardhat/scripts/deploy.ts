@@ -3,7 +3,7 @@ import { mainnet } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
 import { deployContract } from "viem/actions";
 
-import TornadoDepositArtifact from "../artifacts/contracts/TornadoDeposit.sol/TornadoDeposit.json";
+import TornadoArtifact from "../artifacts/contracts/Tornado.sol/Tornado.json";
 
 const hardhatChain = {
   ...mainnet,
@@ -27,10 +27,10 @@ async function main() {
     transport: http(),
   });
 
-  const abi = TornadoDepositArtifact.abi;
-  const bytecode = TornadoDepositArtifact.bytecode as `0x${string}`;
+  const abi = TornadoArtifact.abi;
+  const bytecode = TornadoArtifact.bytecode as `0x${string}`;
 
-  console.log("Deploying TornadoDeposit...");
+  console.log("Deploying Tornado...");
 
   const hash = await deployContract(walletClient, {
     abi,

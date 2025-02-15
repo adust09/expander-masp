@@ -3,18 +3,16 @@ pragma solidity ^0.8.28;
 
 import "./NaiveIncrementalMerkleTree.sol";
 
-/**
- * @title TornadoDeposit
- * @dev 単純化した "Deposit Only" コントラクト (Ether を扱う)
- */
-contract TornadoDeposit {
+contract Tornado {
     using NaiveIncrementalMerkleTree for NaiveIncrementalMerkleTree.TreeData;
 
     uint256 public constant TREE_DEPTH = 10;
 
     NaiveIncrementalMerkleTree.TreeData private treeData;
 
+    // IVerifier public verifier;
     mapping(bytes32 => bool) public isKnownRoot;
+    mapping(bytes32 => bool) public spentNullifiers;
 
     event Deposit(
         address indexed from,
@@ -22,10 +20,12 @@ contract TornadoDeposit {
         bytes32 indexed newRoot,
         uint256 amount
     );
+    event Withdraw(address indexed to, bytes32 indexed nullifier, bytes32 indexed root);
+
 
     constructor() {
         treeData.init(TREE_DEPTH);
-        // 空のルートを known としておく
+        // verifier = IVerifier(_verifeir)
         isKnownRoot[bytes32(0)] = true;
     }
 
@@ -40,6 +40,26 @@ contract TornadoDeposit {
         isKnownRoot[newRoot] = true;
 
         emit Deposit(msg.sender, commitment, newRoot, msg.value);
+    }
+
+    function withdraw(
+        bytes calldata proof,
+        bytes32 root,
+        bytes32 nullifierHash,
+        address payable recipient
+    ) external{
+        require(isKnownRoot[root],"Unknown or invalid root");
+        require(!spentNullifiers[nullifierHash],"Nullifier has been spent");
+        // bool valid = verifier.verifyProoof(proof, root, nullifierHash, recipient);
+        // require(valid,"Invalid proof");
+
+        spentNullifiers[nullifierHash] = true;
+        require(address(this).balance >= 1 ether,"Not enough balance");
+
+        (bool success, ) = recipient.call{value: 1 ether}("");
+        require(success, "ETH transfer failed");
+
+        emit Withdraw(recipient, nullifierHash, root);
     }
 
     function getNumberOfLeaves() external view returns (uint256) {

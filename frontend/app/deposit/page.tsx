@@ -25,7 +25,7 @@ import { getBalance } from "@wagmi/core";
 import { config } from "../../config";
 import { a } from "vitest/dist/chunks/suite.BJU7kdY9.js";
 
-const tornadoDepositAbi = [
+const TornadoAbi = [
   {
     type: "function",
     name: "deposit",
@@ -80,7 +80,7 @@ export default function Deposit() {
         console.log("Commitment generated:", commitment);
         if (selectedToken === "ETH") {
           const tx = writeContract({
-            abi: tornadoDepositAbi,
+            abi: TornadoAbi,
             address: TORNADO_CONTRACT_ADDRESS,
             functionName: "deposit",
             args: [commitment],
