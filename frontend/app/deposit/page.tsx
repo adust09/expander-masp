@@ -41,12 +41,10 @@ export default function Deposit() {
   const [amount, setAmount] = useState("");
   const [selectedToken, setSelectedToken] = useState(TOKENS[0].symbol);
   const [hasBalance, setHasBalance] = useState(false);
-
+  const { writeContract } = useWriteContract();
   const account = useAccount({
     config,
   });
-  console.log("account", account.address);
-  console.log("account", account);
 
   useEffect(() => {
     const fetchBalance = async () => {
@@ -61,8 +59,6 @@ export default function Deposit() {
     };
     fetchBalance();
   }, [account.address]);
-
-  const { writeContract } = useWriteContract();
 
   function generateCommitment() {
     const secret = crypto.getRandomValues(new Uint8Array(32));
