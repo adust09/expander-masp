@@ -1,6 +1,5 @@
 "use client";
-
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -20,15 +19,92 @@ import {
 } from "@/components/ui/select";
 import { ArrowRightLeft } from "lucide-react";
 import { TOKENS } from "@/constants/tokens";
+import { keccak256 } from "viem";
+import { useAccount, useWriteContract } from "wagmi";
+import { getBalance } from "@wagmi/core";
+import { config } from "../../config";
+import { a } from "vitest/dist/chunks/suite.BJU7kdY9.js";
+
+const tornadoDepositAbi = [
+  {
+    type: "function",
+    name: "deposit",
+    stateMutability: "payable",
+    inputs: [{ name: "commitment", type: "bytes32" }],
+    outputs: [],
+  },
+] as const;
+
+const TORNADO_CONTRACT_ADDRESS = "0xYourDeployedAddress";
 
 export default function Deposit() {
   const [amount, setAmount] = useState("");
   const [selectedToken, setSelectedToken] = useState(TOKENS[0].symbol);
+  const [hasBalance, setHasBalance] = useState(false);
 
-  const handleDeposit = () => {
-    // Implement deposit logic here
-    console.log("Deposit:", { amount, token: selectedToken });
-  };
+  const account = useAccount({
+    config,
+  });
+  console.log("account", account.address);
+  console.log("account", account);
+
+  useEffect(() => {
+    const fetchBalance = async () => {
+      if (account.address) {
+        const balance = await getBalance(config, {
+          address: account.address as `0x${string}`,
+          unit: "ether",
+          blockTag: "latest",
+        });
+        setHasBalance(!!balance);
+      }
+    };
+    fetchBalance();
+  }, [account.address]);
+
+  const { writeContract } = useWriteContract();
+
+  function generateCommitment() {
+    const secret = crypto.getRandomValues(new Uint8Array(32));
+    const nullifier = crypto.getRandomValues(new Uint8Array(32));
+
+    const combined = new Uint8Array(secret.length + nullifier.length);
+    combined.set(secret);
+    combined.set(nullifier, secret.length);
+
+    const commitment = keccak256(combined);
+    return commitment;
+  }
+
+  async function handleDeposit() {
+    if (account.isConnecting && hasBalance && amount !== "") {
+      console.log("Generating commitment...");
+      try {
+        const commitment = generateCommitment();
+        console.log("Commitment generated:", commitment);
+        if (selectedToken === "ETH") {
+          const tx = writeContract({
+            abi: tornadoDepositAbi,
+            address: TORNADO_CONTRACT_ADDRESS,
+            functionName: "deposit",
+            args: [commitment],
+          });
+
+          console.log("Deposit tx sent:", tx);
+        } else {
+          alert("ERC20 deposit not implemented in this example.");
+        }
+      } catch (err) {
+        console.error("Deposit failed:", err);
+        alert(`Deposit failed: ${String(err)}`);
+      }
+    } else {
+      alert("Please connect your wallet and ensure you have a balance.");
+      if (amount === "") {
+        alert("Please enter an amount to deposit.");
+      }
+    }
+  }
 
   return (
     <Card className="max-w-md mx-auto">
