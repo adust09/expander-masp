@@ -23,7 +23,6 @@ import { keccak256 } from "viem";
 import { useAccount, useWriteContract } from "wagmi";
 import { getBalance } from "@wagmi/core";
 import { config } from "../../config";
-import { a } from "vitest/dist/chunks/suite.BJU7kdY9.js";
 
 const TornadoAbi = [
   {
