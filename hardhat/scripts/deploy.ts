@@ -1,13 +1,13 @@
 import { createWalletClient, http } from "viem";
-import { mainnet } from "viem/chains";
+import { localhost } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
 import { deployContract } from "viem/actions";
 
 import TornadoArtifact from "../artifacts/contracts/Tornado.sol/Tornado.json";
 
 const hardhatChain = {
-  ...mainnet,
-  id: 31337,
+  ...localhost,
+  id: 1337,
   network: "hardhat",
   rpcUrls: {
     default: { http: ["http://127.0.0.1:8545"] },

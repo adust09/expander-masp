@@ -10,7 +10,7 @@ const bytecode = TornadoArtifact.bytecode as `0x${string}`;
 
 const hardhatChain = {
   ...hardhat,
-  id: 31337,
+  id: 1337,
   network: "hardhat",
   rpcUrls: {
     default: { http: ["http://127.0.0.1:8545"] },
