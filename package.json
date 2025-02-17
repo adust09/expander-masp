@@ -28,6 +28,7 @@
     "react-dom": "^18",
     "tailwind-merge": "^3.0.1",
     "tailwindcss-animate": "^1.0.7",
+    "tsconfig-paths": "^4.2.0",
     "viem": "^2.23.1",
     "wagmi": "^2.14.11"
   },
