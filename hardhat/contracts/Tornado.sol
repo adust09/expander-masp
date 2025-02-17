@@ -43,7 +43,6 @@ contract Tornado {
     }
 
     function withdraw(
-        bytes calldata proof,
         bytes32 root,
         bytes32 nullifierHash,
         address payable recipient

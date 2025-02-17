@@ -15,7 +15,6 @@ import {
   getLogs,
   waitForTransactionReceipt,
   deployContract,
-  readContract,
 } from "viem/actions";
 
 import TornadoArtifact from "../artifacts/contracts/Tornado.sol/Tornado.json";
@@ -43,7 +42,6 @@ describe("Tornado (Withdraw tests with viem)", () => {
   let account: any;
   let publicClient: any;
   let walletClient: any;
-  let depositCommitment: `0x${string}`;
 
   beforeAll(async () => {
     account = privateKeyToAccount(PRIVATE_KEY);
