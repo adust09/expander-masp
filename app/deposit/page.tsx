@@ -20,7 +20,11 @@ import {
 import { ArrowRightLeft } from "lucide-react";
 import { TOKENS } from "@/constants/tokens";
 import { keccak256 } from "viem";
-import { useAccount, useWriteContract } from "wagmi";
+import {
+  useAccount,
+  useWaitForTransactionReceipt,
+  useWriteContract,
+} from "wagmi";
 import { getBalance } from "@wagmi/core";
 import { config } from "../../config";
 
@@ -39,17 +43,16 @@ const TORNADO_CONTRACT_ADDRESS = "0x73511669fd4de447fed18bb79bafeac93ab7f31f";
 export default function Deposit() {
   const [amount, setAmount] = useState("");
   const [selectedToken, setSelectedToken] = useState(TOKENS[0].symbol);
-  const [hasBalance, setHasBalance] = useState(false);
   const { writeContract } = useWriteContract();
-  const account = useAccount({
-    config,
-  });
+  const { address, isConnected } = useAccount();
+  const [hasBalance, setHasBalance] = useState(false);
+  const [commitment, setCommitment] = useState<`0x${string}`>();
 
   useEffect(() => {
     const fetchBalance = async () => {
-      if (account.address) {
+      if (address) {
         const balance = await getBalance(config, {
-          address: account.address as `0x${string}`,
+          address: address as `0x${string}`,
           unit: "ether",
           blockTag: "latest",
         });
@@ -57,7 +60,7 @@ export default function Deposit() {
       }
     };
     fetchBalance();
-  }, [account.address]);
+  }, [address]);
 
   function generateCommitment() {
     const secret = crypto.getRandomValues(new Uint8Array(32));
@@ -72,17 +75,18 @@ export default function Deposit() {
   }
 
   async function handleDeposit() {
-    if (account.isConnecting && hasBalance && amount !== "") {
+    if (isConnected && hasBalance && amount !== "") {
       console.log("Generating commitment...");
       try {
-        const commitment = generateCommitment();
+        const c = generateCommitment();
+        setCommitment(c);
         console.log("Commitment generated:", commitment);
         if (selectedToken === "ETH") {
           const tx = writeContract({
             abi: TornadoAbi,
             address: TORNADO_CONTRACT_ADDRESS,
             functionName: "deposit",
-            args: [commitment],
+            args: [c],
           });
 
           console.log("Deposit tx sent:", tx);
