@@ -39,10 +39,11 @@ const TORNADO_CONTRACT_ADDRESS = "0x73511669fd4de447fed18bb79bafeac93ab7f31f";
 export default function Deposit() {
   const [amount, setAmount] = useState("");
   const [selectedToken, setSelectedToken] = useState(TOKENS[0].symbol);
-  const { writeContract } = useWriteContract();
   const { address, isConnected } = useAccount();
   const [hasBalance, setHasBalance] = useState(false);
   const [commitment, setCommitment] = useState<`0x${string}`>();
+
+  const { writeContract } = useWriteContract();
 
   useEffect(() => {
     const fetchBalance = async () => {
