@@ -20,11 +20,7 @@ import {
 import { ArrowRightLeft } from "lucide-react";
 import { TOKENS } from "@/constants/tokens";
 import { keccak256 } from "viem";
-import {
-  useAccount,
-  useWaitForTransactionReceipt,
-  useWriteContract,
-} from "wagmi";
+import { useAccount, useWriteContract } from "wagmi";
 import { getBalance } from "@wagmi/core";
 import { config } from "../../config";
 
