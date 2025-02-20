@@ -13,6 +13,7 @@ contract Tornado {
     // IVerifier public verifier;
     mapping(bytes32 => bool) public isKnownRoot;
     mapping(bytes32 => bool) public spentNullifiers;
+    bytes32 public currentRoot;
 
     event Deposit(
         address indexed from,
@@ -27,6 +28,7 @@ contract Tornado {
         treeData.init(TREE_DEPTH);
         // verifier = IVerifier(_verifeir)
         isKnownRoot[bytes32(0)] = true;
+        currentRoot = bytes32(0);
     }
 
     function deposit(bytes32 commitment) external payable {
