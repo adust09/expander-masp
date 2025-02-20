@@ -20,7 +20,12 @@ import {
 import { ArrowRightLeft } from "lucide-react";
 import { TOKENS } from "@/constants/tokens";
 import { keccak256 } from "viem";
-import { useAccount, useWriteContract } from "wagmi";
+import {
+  useAccount,
+  useReadContract,
+  useWaitForTransactionReceipt,
+  useWriteContract,
+} from "wagmi";
 import { getBalance } from "@wagmi/core";
 import { config } from "../../config";
 
@@ -34,7 +39,7 @@ const TornadoAbi = [
   },
 ] as const;
 
-const TORNADO_CONTRACT_ADDRESS = "0x73511669fd4de447fed18bb79bafeac93ab7f31f";
+const TORNADO_CONTRACT_ADDRESS = "0x43ca3d2c94be00692d207c6a1e60d8b325c6f12f";
 
 export default function Deposit() {
   const [amount, setAmount] = useState("");
@@ -42,8 +47,8 @@ export default function Deposit() {
   const { address, isConnected } = useAccount();
   const [hasBalance, setHasBalance] = useState(false);
   const [commitment, setCommitment] = useState<`0x${string}`>();
-
-  const { writeContract } = useWriteContract();
+  const [newRoot, setNewRoot] = useState<`0x${string}` | null>(null);
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     const fetchBalance = async () => {
@@ -71,6 +76,10 @@ export default function Deposit() {
     return commitment;
   }
 
+  const { data: depositTxData, writeContract } = useWriteContract({
+    config,
+  });
+
   async function handleDeposit() {
     if (isConnected && hasBalance && amount !== "") {
       console.log("Generating commitment...");
@@ -78,28 +87,36 @@ export default function Deposit() {
         const c = generateCommitment();
         setCommitment(c);
         console.log("Commitment generated:", commitment);
-        if (selectedToken === "ETH") {
-          const tx = writeContract({
+        setTimeout(() => {
+          writeContract({
             abi: TornadoAbi,
             address: TORNADO_CONTRACT_ADDRESS,
             functionName: "deposit",
             args: [c],
           });
-
-          console.log("Deposit tx sent:", tx);
-        } else {
-          alert("ERC20 deposit not implemented in this example.");
-        }
-      } catch (err) {
-        console.error("Deposit failed:", err);
-        alert(`Deposit failed: ${String(err)}`);
-      }
-    } else {
-      alert("Please connect your wallet and ensure you have a balance.");
-      if (amount === "") {
-        alert("Please enter an amount to deposit.");
+        }, 100);
+      } catch (error) {
+        console.error("Deposit failed:", error);
       }
     }
+  }
+
+  const { isSuccess: isTxDone } = useWaitForTransactionReceipt({
+    hash: depositTxData as `0x${string}`,
+  });
+
+  const { data: latestRoot, refetch: refetchLatestRoot } = useReadContract({
+    address: TORNADO_CONTRACT_ADDRESS,
+    abi: TornadoAbi,
+    functionName: "getLatestRoot",
+  });
+
+  async function handleFetchRoot() {
+    await refetchLatestRoot();
+    if (latestRoot) {
+      setMessage(`latestRoot is ${latestRoot}`);
+    }
+    setNewRoot(latestRoot ?? null);
   }
 
   return (
@@ -133,6 +150,10 @@ export default function Deposit() {
             onChange={(e) => setAmount(e.target.value)}
           />
         </div>
+        <p className="break-all text-sm">Generated commitment: {commitment}</p>
+        <p className="break-all text-sm text-green-600">
+          newRoot from logs: {newRoot}
+        </p>
       </CardContent>
       <CardFooter>
         <Button
@@ -141,6 +162,17 @@ export default function Deposit() {
         >
           <ArrowRightLeft className="mr-2" /> Deposit {selectedToken}
         </Button>
+        {isTxDone && (
+          <Button
+            className="bg-gray-600 hover:bg-gray-700"
+            onClick={handleFetchRoot}
+          >
+            Get Latest Root
+          </Button>
+        )}
+        {latestRoot && (
+          <p className="text-sm text-green-600 break-all">{message}</p>
+        )}
       </CardFooter>
     </Card>
   );

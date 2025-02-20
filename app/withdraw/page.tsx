@@ -23,7 +23,6 @@ import { TOKENS } from "@/constants/tokens";
 import { useWriteContract } from "wagmi";
 import { isAddress, zeroAddress } from "viem"; // optional validation helpers
 import { config } from "../../config";
-
 const TornadoAbi = [
   {
     type: "function",
@@ -37,7 +36,7 @@ const TornadoAbi = [
   },
 ] as const;
 
-const TORNADO_CONTRACT_ADDRESS = "0x73511669fd4de447fed18bb79bafeac93ab7f31f";
+const TORNADO_CONTRACT_ADDRESS = "0x43ca3d2c94be00692d207c6a1e60d8b325c6f12f";
 
 export default function Withdraw() {
   const [root, setRoot] = useState("");
@@ -45,16 +44,11 @@ export default function Withdraw() {
   const [recipient, setRecipient] = useState("");
   const [nullifierHash, setNullifierHash] = useState("");
 
-  const {
-    isSuccess: isWithdrawSuccess,
-    error: withdrawError,
-    writeContract,
-  } = useWriteContract({
+  const { isSuccess: isWithdrawSuccess, writeContract } = useWriteContract({
     config,
   });
 
   console.log("withdrawError", isWithdrawSuccess);
-  console.log("withdrawError", withdrawError);
 
   const handleWithdraw = () => {
     // todo
