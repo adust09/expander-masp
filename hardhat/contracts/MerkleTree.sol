@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-library NaiveIncrementalMerkleTree {
+library MerkleTree {
     struct TreeData {
         uint256 depth;
         bytes32[] leaves;
@@ -17,6 +17,10 @@ library NaiveIncrementalMerkleTree {
         require(currentIndex < 2**self.depth, "Tree is full");
         self.leaves.push(leaf);
         newRoot = _computeRoot(self.leaves);
+    }
+
+    function getRoot(TreeData storage self) internal view returns (bytes32) {
+        return _computeRoot(self.leaves);
     }
 
     function _computeRoot(bytes32[] memory leaves) private pure returns (bytes32 root) {

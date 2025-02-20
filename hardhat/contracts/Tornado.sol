@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import "./NaiveIncrementalMerkleTree.sol";
+import "./MerkleTree.sol";
 
 contract Tornado {
-    using NaiveIncrementalMerkleTree for NaiveIncrementalMerkleTree.TreeData;
+    using MerkleTree for MerkleTree.TreeData;
 
     uint256 public constant TREE_DEPTH = 10;
 
-    NaiveIncrementalMerkleTree.TreeData private treeData;
+    MerkleTree.TreeData private treeData;
 
     // IVerifier public verifier;
     mapping(bytes32 => bool) public isKnownRoot;
@@ -29,10 +29,6 @@ contract Tornado {
         isKnownRoot[bytes32(0)] = true;
     }
 
-    /**
-     * @dev ユーザーがETHを送付し、Merkleツリーに葉(=commitment)を追加する
-     * @param commitment hash(secret, nullifier) 等を想定
-     */
     function deposit(bytes32 commitment) external payable {
         require(msg.value > 0, "No ETH sent");
 
@@ -71,5 +67,9 @@ contract Tornado {
 
     function contractBalance() external view returns (uint256) {
         return address(this).balance;
+    }
+
+    function getLatestRoot() external view returns (bytes32) {
+        return treeData.getRoot();
     }
 }
