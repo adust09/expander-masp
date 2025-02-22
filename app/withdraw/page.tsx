@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -20,9 +20,9 @@ import {
 } from "@/components/ui/select";
 import { ArrowRightLeft } from "lucide-react";
 import { TOKENS } from "@/constants/tokens";
-import { useWriteContract } from "wagmi";
+import { useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { isAddress, zeroAddress } from "viem"; // optional validation helpers
-import { config } from "../../config";
+import { getBalance } from "@wagmi/core";
 const TornadoAbi = [
   {
     type: "function",
@@ -35,8 +35,9 @@ const TornadoAbi = [
     ],
   },
 ] as const;
+import { config } from "../../config";
 
-const TORNADO_CONTRACT_ADDRESS = "0x43ca3d2c94be00692d207c6a1e60d8b325c6f12f";
+const TORNADO_CONTRACT_ADDRESS = "0x73511669fd4de447fed18bb79bafeac93ab7f31f";
 
 export default function Withdraw() {
   const [root, setRoot] = useState("");
@@ -44,11 +45,37 @@ export default function Withdraw() {
   const [recipient, setRecipient] = useState("");
   const [nullifierHash, setNullifierHash] = useState("");
 
-  const { isSuccess: isWithdrawSuccess, writeContract } = useWriteContract({
+  const {
+    data: withdrawData,
+    isSuccess: isWithdrawSuccess,
+    error,
+    writeContract,
+  } = useWriteContract({
     config,
   });
 
-  console.log("withdrawError", isWithdrawSuccess);
+  const { isSuccess: isTxDone } = useWaitForTransactionReceipt({
+    hash: withdrawData as `0x${string}`,
+  });
+
+  useEffect(() => {
+    const fetchBalance = async () => {
+      const balance = await getBalance(config, {
+        address: TORNADO_CONTRACT_ADDRESS as `0x${string}`,
+        unit: "ether",
+        blockTag: "latest",
+      });
+      console.log("balance", balance);
+    };
+    fetchBalance();
+  }, []);
+
+  if (isWithdrawSuccess && isTxDone) {
+    alert("Withdraw successful");
+  } else if (error) {
+    alert("Withdraw failed");
+    console.error("error", error);
+  }
 
   const handleWithdraw = () => {
     // todo
@@ -56,6 +83,7 @@ export default function Withdraw() {
     //   alert("Wallet not connected!");
     //   return;
     // }
+
     if (selectedToken !== "ETH") {
       alert("This contract only supports ETH (fixed 1ETH) withdraw");
       return;
@@ -72,17 +100,22 @@ export default function Withdraw() {
       alert("Withdraw not ready (wagmi hook not initialized?)");
       return;
     }
-
-    writeContract({
-      abi: TornadoAbi,
-      address: TORNADO_CONTRACT_ADDRESS,
-      functionName: "withdraw",
-      args: [
-        root as `0x${string}`,
-        nullifierHash as `0x${string}`,
-        recipient as `0x${string}`,
-      ],
-    });
+    try {
+      setTimeout(() => {
+        writeContract({
+          abi: TornadoAbi,
+          address: TORNADO_CONTRACT_ADDRESS,
+          functionName: "withdraw",
+          args: [
+            root as `0x${string}`,
+            nullifierHash as `0x${string}`,
+            recipient as `0x${string}`,
+          ],
+        });
+      }, 100);
+    } catch (error) {
+      console.log("error", error);
+    }
   };
 
   return (

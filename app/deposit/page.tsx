@@ -79,6 +79,7 @@ export default function Deposit() {
     combined.set(nullifier, secret.length);
 
     const commitment = keccak256(combined);
+    console.log("Commitment generated:", commitment);
     return commitment;
   }
 
