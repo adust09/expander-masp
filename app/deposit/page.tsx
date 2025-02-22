@@ -46,7 +46,7 @@ const TornadoAbi = [
   },
 ] as const;
 
-const TORNADO_CONTRACT_ADDRESS = "0xb581c9264f59bf0289fa76d61b2d0746dce3c30d";
+const TORNADO_CONTRACT_ADDRESS = "0xc469e7ae4ad962c30c7111dc580b4adbc7e914dd";
 
 export default function Deposit() {
   const [amount, setAmount] = useState("");

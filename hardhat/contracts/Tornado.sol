@@ -54,7 +54,9 @@ contract Tornado {
         spentNullifiers[nullifierHash] = true;
         require(address(this).balance >= 1 ether,"Not enough balance");
 
-        (bool success, ) = recipient.call{value: 1 ether}("");
+        uint256 balance = address(this).balance;
+
+        (bool success, ) = recipient.call{value: balance}("");
         require(success, "ETH transfer failed");
 
         emit Withdraw(recipient, nullifierHash, root);
