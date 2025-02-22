@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/select";
 import { ArrowRightLeft } from "lucide-react";
 import { TOKENS } from "@/constants/tokens";
-import { keccak256 } from "viem";
+import { keccak256, parseEther } from "viem";
 import {
   useAccount,
   useReadContract,
@@ -37,6 +37,13 @@ const TornadoAbi = [
     inputs: [{ name: "commitment", type: "bytes32" }],
     outputs: [],
   },
+  {
+    type: "function",
+    name: "getLatestRoot",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ type: "bytes32" }],
+  },
 ] as const;
 
 const TORNADO_CONTRACT_ADDRESS = "0x43ca3d2c94be00692d207c6a1e60d8b325c6f12f";
@@ -47,7 +54,7 @@ export default function Deposit() {
   const { address, isConnected } = useAccount();
   const [hasBalance, setHasBalance] = useState(false);
   const [commitment, setCommitment] = useState<`0x${string}`>();
-  const [currentRoot, setCurrentRoot] = useState<`0x${string}` | null>(null);
+  const [currentRoot, setCurrentRoot] = useState<`0x${string}`>();
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -85,6 +92,7 @@ export default function Deposit() {
   });
 
   const { data: latestRoot, refetch: refetchLatestRoot } = useReadContract({
+    config,
     address: TORNADO_CONTRACT_ADDRESS,
     abi: TornadoAbi,
     functionName: "getLatestRoot",
@@ -105,8 +113,10 @@ export default function Deposit() {
             address: TORNADO_CONTRACT_ADDRESS,
             functionName: "deposit",
             args: [c],
+            value: parseEther(amount),
           });
         }, 100);
+        console.log("Deposit transaction sent.");
       } catch (error) {
         console.error("Deposit failed:", error);
       }
@@ -120,7 +130,7 @@ export default function Deposit() {
       console.log("Latest root fetched:", latestRoot);
       setMessage(`latestRoot is ${latestRoot}`);
     }
-    setCurrentRoot(latestRoot ?? null);
+    setCurrentRoot(latestRoot);
   }
 
   return (
