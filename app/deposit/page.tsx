@@ -47,7 +47,7 @@ export default function Deposit() {
   const { address, isConnected } = useAccount();
   const [hasBalance, setHasBalance] = useState(false);
   const [commitment, setCommitment] = useState<`0x${string}`>();
-  const [newRoot, setNewRoot] = useState<`0x${string}` | null>(null);
+  const [currentRoot, setCurrentRoot] = useState<`0x${string}` | null>(null);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -80,6 +80,18 @@ export default function Deposit() {
     config,
   });
 
+  const { isSuccess: isTxDone } = useWaitForTransactionReceipt({
+    hash: depositTxData as `0x${string}`,
+  });
+
+  const { data: latestRoot, refetch: refetchLatestRoot } = useReadContract({
+    address: TORNADO_CONTRACT_ADDRESS,
+    abi: TornadoAbi,
+    functionName: "getLatestRoot",
+  });
+
+  console.log("latestRoot:", latestRoot);
+
   async function handleDeposit() {
     if (isConnected && hasBalance && amount !== "") {
       console.log("Generating commitment...");
@@ -101,22 +113,14 @@ export default function Deposit() {
     }
   }
 
-  const { isSuccess: isTxDone } = useWaitForTransactionReceipt({
-    hash: depositTxData as `0x${string}`,
-  });
-
-  const { data: latestRoot, refetch: refetchLatestRoot } = useReadContract({
-    address: TORNADO_CONTRACT_ADDRESS,
-    abi: TornadoAbi,
-    functionName: "getLatestRoot",
-  });
-
-  async function handleFetchRoot() {
+  async function handleRoot() {
+    console.log("Fetching latest root...");
     await refetchLatestRoot();
     if (latestRoot) {
+      console.log("Latest root fetched:", latestRoot);
       setMessage(`latestRoot is ${latestRoot}`);
     }
-    setNewRoot(latestRoot ?? null);
+    setCurrentRoot(latestRoot ?? null);
   }
 
   return (
@@ -152,7 +156,7 @@ export default function Deposit() {
         </div>
         <p className="break-all text-sm">Generated commitment: {commitment}</p>
         <p className="break-all text-sm text-green-600">
-          newRoot from logs: {newRoot}
+          Current Root: {currentRoot}
         </p>
       </CardContent>
       <CardFooter>
@@ -165,7 +169,7 @@ export default function Deposit() {
         {isTxDone && (
           <Button
             className="bg-gray-600 hover:bg-gray-700"
-            onClick={handleFetchRoot}
+            onClick={handleRoot}
           >
             Get Latest Root
           </Button>

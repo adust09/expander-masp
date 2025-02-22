@@ -22,9 +22,6 @@ export default function Home() {
             Start Mixing <ArrowRight className="ml-2" />
           </Button>
         </Link>
-        <Link href="/compliance">
-          <Button variant="outline">Learn More</Button>
-        </Link>
       </div>
     </div>
   );
