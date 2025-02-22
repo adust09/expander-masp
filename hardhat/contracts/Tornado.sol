@@ -35,6 +35,7 @@ contract Tornado {
         require(msg.value > 0, "No ETH sent");
 
         bytes32 newRoot = treeData.insertLeaf(commitment);
+        currentRoot = newRoot;
         isKnownRoot[newRoot] = true;
 
         emit Deposit(msg.sender, commitment, newRoot, msg.value);
