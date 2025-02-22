@@ -55,7 +55,6 @@ export default function Deposit() {
   const [hasBalance, setHasBalance] = useState(false);
   const [commitment, setCommitment] = useState<`0x${string}`>();
   const [currentRoot, setCurrentRoot] = useState<`0x${string}`>();
-  // const [message, setMessage] = useState("");
 
   useEffect(() => {
     const fetchBalance = async () => {
@@ -133,14 +132,12 @@ export default function Deposit() {
     if (result.data) {
       console.log("Latest root fetched:", result.data);
       setCurrentRoot(result.data as `0x${string}`);
-      // setMessage(`latestRoot is ${result.data}`);
     } else {
       console.warn("No root returned (result.data is undefined)");
     }
 
     if (latestRoot) {
       console.log("Latest root fetched:", latestRoot);
-      // setMessage(`latestRoot is ${latestRoot}`);
     } else {
       console.error("Failed to fetch latest root.");
       console.error("Error:", error);
@@ -203,9 +200,6 @@ export default function Deposit() {
             Get Latest Root
           </Button>
         )}
-        {/* {latestRoot && (
-          <p className="text-sm text-green-600 break-all">{message}</p>
-        )} */}
       </CardFooter>
     </Card>
   );
