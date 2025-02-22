@@ -54,9 +54,9 @@ contract Tornado {
         spentNullifiers[nullifierHash] = true;
         require(address(this).balance >= 1 ether,"Not enough balance");
 
-        uint256 balance = address(this).balance;
+        // uint256 balance = address(this).balance;
 
-        (bool success, ) = recipient.call{value: balance}("");
+        (bool success, ) = recipient.call{value: 1 ether}("");
         require(success, "ETH transfer failed");
 
         emit Withdraw(recipient, nullifierHash, root);
@@ -74,7 +74,7 @@ contract Tornado {
         return address(this).balance;
     }
 
-    function getLatestRoot() external view returns (bytes32) {
-        return treeData.getRoot();
+    function getCurrentRoot() external view returns (bytes32) {
+        return currentRoot;
     }
 }

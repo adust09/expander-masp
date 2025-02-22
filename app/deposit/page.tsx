@@ -39,14 +39,14 @@ const TornadoAbi = [
   },
   {
     type: "function",
-    name: "getLatestRoot",
+    name: "currentRoot",
     stateMutability: "view",
     inputs: [],
     outputs: [{ type: "bytes32" }],
   },
 ] as const;
 
-const TORNADO_CONTRACT_ADDRESS = "0xc469e7ae4ad962c30c7111dc580b4adbc7e914dd";
+const TORNADO_CONTRACT_ADDRESS = "0xb581c9264f59bf0289fa76d61b2d0746dce3c30d";
 
 export default function Deposit() {
   const [amount, setAmount] = useState("");
@@ -99,7 +99,7 @@ export default function Deposit() {
   } = useReadContract({
     address: TORNADO_CONTRACT_ADDRESS,
     abi: TornadoAbi,
-    functionName: "getLatestRoot",
+    functionName: "currentRoot",
   });
 
   async function handleDeposit() {
