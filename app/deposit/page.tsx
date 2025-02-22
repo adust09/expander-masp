@@ -46,7 +46,7 @@ const TornadoAbi = [
   },
 ] as const;
 
-const TORNADO_CONTRACT_ADDRESS = "0x43ca3d2c94be00692d207c6a1e60d8b325c6f12f";
+const TORNADO_CONTRACT_ADDRESS = "0x73511669fd4de447fed18bb79bafeac93ab7f31f";
 
 export default function Deposit() {
   const [amount, setAmount] = useState("");
@@ -55,7 +55,7 @@ export default function Deposit() {
   const [hasBalance, setHasBalance] = useState(false);
   const [commitment, setCommitment] = useState<`0x${string}`>();
   const [currentRoot, setCurrentRoot] = useState<`0x${string}`>();
-  const [message, setMessage] = useState("");
+  // const [message, setMessage] = useState("");
 
   useEffect(() => {
     const fetchBalance = async () => {
@@ -71,7 +71,7 @@ export default function Deposit() {
     fetchBalance();
   }, [address]);
 
-  function generateCommitment() {
+  function genCommitment() {
     const secret = crypto.getRandomValues(new Uint8Array(32));
     const nullifier = crypto.getRandomValues(new Uint8Array(32));
 
@@ -91,20 +91,22 @@ export default function Deposit() {
     hash: depositTxData as `0x${string}`,
   });
 
-  const { data: latestRoot, refetch: refetchLatestRoot } = useReadContract({
-    config,
+  const {
+    data: latestRoot,
+    refetch: refetchLatestRoot,
+    isError,
+    error,
+  } = useReadContract({
     address: TORNADO_CONTRACT_ADDRESS,
     abi: TornadoAbi,
     functionName: "getLatestRoot",
   });
 
-  console.log("latestRoot:", latestRoot);
-
   async function handleDeposit() {
     if (isConnected && hasBalance && amount !== "") {
       console.log("Generating commitment...");
       try {
-        const c = generateCommitment();
+        const c = genCommitment();
         setCommitment(c);
         console.log("Commitment generated:", commitment);
         setTimeout(() => {
@@ -125,10 +127,27 @@ export default function Deposit() {
 
   async function handleRoot() {
     console.log("Fetching latest root...");
-    await refetchLatestRoot();
+    const result = await refetchLatestRoot();
+    console.log("Latest root fetched:", result);
+
+    if (result.data) {
+      console.log("Latest root fetched:", result.data);
+      setCurrentRoot(result.data as `0x${string}`);
+      // setMessage(`latestRoot is ${result.data}`);
+    } else {
+      console.warn("No root returned (result.data is undefined)");
+    }
+
     if (latestRoot) {
       console.log("Latest root fetched:", latestRoot);
-      setMessage(`latestRoot is ${latestRoot}`);
+      // setMessage(`latestRoot is ${latestRoot}`);
+    } else {
+      console.error("Failed to fetch latest root.");
+      console.error("Error:", error);
+    }
+
+    if (isError) {
+      console.error("Failed to fetch latest root:", isError);
     }
     setCurrentRoot(latestRoot);
   }
@@ -184,9 +203,9 @@ export default function Deposit() {
             Get Latest Root
           </Button>
         )}
-        {latestRoot && (
+        {/* {latestRoot && (
           <p className="text-sm text-green-600 break-all">{message}</p>
-        )}
+        )} */}
       </CardFooter>
     </Card>
   );
