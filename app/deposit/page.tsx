@@ -18,7 +18,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ArrowRightLeft } from "lucide-react";
-import { TOKENS } from "@/constants/tokens";
 import { keccak256, parseEther } from "viem";
 import {
   useAccount,
@@ -28,25 +27,8 @@ import {
 } from "wagmi";
 import { getBalance } from "@wagmi/core";
 import { config } from "../../config";
-
-const TornadoAbi = [
-  {
-    type: "function",
-    name: "deposit",
-    stateMutability: "payable",
-    inputs: [{ name: "commitment", type: "bytes32" }],
-    outputs: [],
-  },
-  {
-    type: "function",
-    name: "currentRoot",
-    stateMutability: "view",
-    inputs: [],
-    outputs: [{ type: "bytes32" }],
-  },
-] as const;
-
-const TORNADO_CONTRACT_ADDRESS = "0xb581c9264f59bf0289fa76d61b2d0746dce3c30d";
+import { ABI, TORNADO_CONTRACT_ADDRESS } from "@/constants/contract";
+import { TOKENS } from "@/constants/tokens";
 
 export default function Deposit() {
   const [amount, setAmount] = useState("");
@@ -98,7 +80,7 @@ export default function Deposit() {
     error,
   } = useReadContract({
     address: TORNADO_CONTRACT_ADDRESS,
-    abi: TornadoAbi,
+    abi: ABI,
     functionName: "currentRoot",
   });
 
@@ -111,7 +93,7 @@ export default function Deposit() {
         console.log("Commitment generated:", commitment);
         setTimeout(() => {
           writeContract({
-            abi: TornadoAbi,
+            abi: ABI,
             address: TORNADO_CONTRACT_ADDRESS,
             functionName: "deposit",
             args: [c],
@@ -147,7 +129,11 @@ export default function Deposit() {
     if (isError) {
       console.error("Failed to fetch latest root:", isError);
     }
-    setCurrentRoot(latestRoot);
+    if (latestRoot) {
+      setCurrentRoot(latestRoot as `0x${string}`);
+    } else {
+      console.warn("Latest root is undefined");
+    }
   }
 
   return (

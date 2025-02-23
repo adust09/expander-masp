@@ -19,25 +19,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ArrowRightLeft } from "lucide-react";
-import { TOKENS } from "@/constants/tokens";
 import { useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { isAddress, zeroAddress } from "viem"; // optional validation helpers
 import { getBalance } from "@wagmi/core";
-const TornadoAbi = [
-  {
-    type: "function",
-    name: "withdraw",
-    stateMutability: "nonpayable",
-    inputs: [
-      { name: "root", type: "bytes32" },
-      { name: "nullifierHash", type: "bytes32" },
-      { name: "recipient", type: "address" },
-    ],
-  },
-] as const;
 import { config } from "../../config";
-
-const TORNADO_CONTRACT_ADDRESS = "0xb581c9264f59bf0289fa76d61b2d0746dce3c30d";
+import { ABI, TORNADO_CONTRACT_ADDRESS } from "@/constants/contract";
+import { TOKENS } from "@/constants/tokens";
 
 export default function Withdraw() {
   const [root, setRoot] = useState("");
@@ -103,7 +90,7 @@ export default function Withdraw() {
     try {
       setTimeout(() => {
         writeContract({
-          abi: TornadoAbi,
+          abi: ABI,
           address: TORNADO_CONTRACT_ADDRESS,
           functionName: "withdraw",
           args: [
