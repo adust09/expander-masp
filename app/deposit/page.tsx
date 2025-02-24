@@ -81,7 +81,7 @@ export default function Deposit() {
   } = useReadContract({
     address: TORNADO_CONTRACT_ADDRESS,
     abi: ABI,
-    functionName: "currentRoot",
+    functionName: "getCurrentRoot",
   });
 
   async function handleDeposit() {

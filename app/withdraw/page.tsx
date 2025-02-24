@@ -31,19 +31,41 @@ export default function Withdraw() {
   const [recipient, setRecipient] = useState("");
   const [nullifierHash, setNullifierHash] = useState("");
   const [root, setRoot] = useState("");
+  const [message, setMessage] = useState("");
 
   const {
     data: withdrawData,
     isSuccess: isWithdrawSuccess,
-    error,
+    isError: isWithdrawError,
+    error: withdrawError,
     writeContract,
   } = useWriteContract({
     config,
+    mutation: {
+      onError(err) {
+        console.error("Withdraw onError callback:", err);
+        setMessage(
+          `Withdraw error (callback): ${err.message || JSON.stringify(err)}`
+        );
+      },
+      onSuccess(data) {
+        console.log("Withdraw tx sent:", data);
+        setMessage("Withdraw transaction submitted!");
+      },
+    },
   });
 
   const { isSuccess: isTxDone } = useWaitForTransactionReceipt({
     hash: withdrawData as `0x${string}`,
   });
+
+  if (isWithdrawSuccess && isTxDone) {
+    alert("Withdraw successful");
+  }
+
+  if (isWithdrawError && withdrawError) {
+    console.error("Withdraw error details:", withdrawError);
+  }
 
   useEffect(() => {
     const fetchBalance = async () => {
@@ -56,13 +78,6 @@ export default function Withdraw() {
     };
     fetchBalance();
   }, []);
-
-  if (isWithdrawSuccess && isTxDone) {
-    alert("Withdraw successful");
-  } else if (error) {
-    alert("Withdraw failed");
-    console.error("error", error);
-  }
 
   async function handleWithdraw() {
     if (selectedToken !== "ETH") {
@@ -94,8 +109,12 @@ export default function Withdraw() {
           ],
         });
       }, 100);
-    } catch (error) {
-      console.log("error", error);
+    } catch (err) {
+      console.error("handleWithdraw error:", err);
+      const errorMessage =
+        err instanceof Error ? err.message : JSON.stringify(err);
+      setMessage(`Withdraw failed: ${errorMessage}`);
+      alert(`Withdraw failed: ${errorMessage}`);
     }
   }
 
@@ -147,6 +166,7 @@ export default function Withdraw() {
             onChange={(e) => setRoot(e.target.value)}
           />
         </div>
+        {message && <p className="text-sm">{message}</p>}
       </CardContent>
       <CardFooter>
         <Button

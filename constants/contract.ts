@@ -1,5 +1,5 @@
 export const TORNADO_CONTRACT_ADDRESS =
-  "0x37dd26d18abec2d311e82177f9fa58e9dc14b579";
+  "0x73511669fd4de447fed18bb79bafeac93ab7f31f";
 export const ABI = [
   {
     type: "function",
@@ -10,7 +10,7 @@ export const ABI = [
   },
   {
     type: "function",
-    name: "currentRoot",
+    name: "getCurrentRoot",
     stateMutability: "view",
     inputs: [],
     outputs: [{ type: "bytes32" }],
