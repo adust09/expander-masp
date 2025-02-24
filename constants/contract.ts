@@ -1,5 +1,5 @@
 export const TORNADO_CONTRACT_ADDRESS =
-  "0xc469e7ae4ad962c30c7111dc580b4adbc7e914dd";
+  "0x37dd26d18abec2d311e82177f9fa58e9dc14b579";
 export const ABI = [
   {
     type: "function",
@@ -18,11 +18,12 @@ export const ABI = [
   {
     type: "function",
     name: "withdraw",
-    stateMutability: "nonpayable",
+    stateMutability: "payable",
     inputs: [
-      { name: "root", type: "bytes32" },
-      { name: "nullifierHash", type: "bytes32" },
       { name: "recipient", type: "address" },
+      { name: "nullifierHash", type: "bytes32" },
+      { name: "root", type: "bytes32" },
     ],
+    outputs: [],
   },
 ] as const;

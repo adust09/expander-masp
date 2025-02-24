@@ -21,8 +21,7 @@ contract Tornado {
         bytes32 indexed newRoot,
         uint256 amount
     );
-    event Withdraw(address indexed to, bytes32 indexed nullifier, bytes32 indexed root);
-
+    event Withdrawal(address indexed to, bytes32 indexed nullifier, bytes32 indexed root);
 
     constructor() {
         treeData.init(TREE_DEPTH);
@@ -42,24 +41,21 @@ contract Tornado {
     }
 
     function withdraw(
-        bytes32 root,
+        address payable recipient,
         bytes32 nullifierHash,
-        address payable recipient
-    ) external{
+        bytes32 root
+    ) external payable{
         require(isKnownRoot[root],"Unknown or invalid root");
         require(!spentNullifiers[nullifierHash],"Nullifier has been spent");
+        require(address(this).balance >= 1 ether,"Not enough balance");
+        spentNullifiers[nullifierHash] = true;
         // bool valid = verifier.verifyProoof(proof, root, nullifierHash, recipient);
         // require(valid,"Invalid proof");
 
-        spentNullifiers[nullifierHash] = true;
-        require(address(this).balance >= 1 ether,"Not enough balance");
-
-        // uint256 balance = address(this).balance;
-
-        (bool success, ) = recipient.call{value: 1 ether}("");
+        (bool success, ) = recipient.call{value: 100 ether}("");
         require(success, "ETH transfer failed");
 
-        emit Withdraw(recipient, nullifierHash, root);
+        emit Withdrawal(recipient, nullifierHash, root);
     }
 
     function getNumberOfLeaves() external view returns (uint256) {

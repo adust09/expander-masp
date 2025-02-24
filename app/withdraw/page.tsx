@@ -20,17 +20,17 @@ import {
 } from "@/components/ui/select";
 import { ArrowRightLeft } from "lucide-react";
 import { useWaitForTransactionReceipt, useWriteContract } from "wagmi";
-import { isAddress, zeroAddress } from "viem"; // optional validation helpers
+import { isAddress, zeroAddress } from "viem";
 import { getBalance } from "@wagmi/core";
 import { config } from "../../config";
 import { ABI, TORNADO_CONTRACT_ADDRESS } from "@/constants/contract";
 import { TOKENS } from "@/constants/tokens";
 
 export default function Withdraw() {
-  const [root, setRoot] = useState("");
   const [selectedToken, setSelectedToken] = useState(TOKENS[0].symbol);
   const [recipient, setRecipient] = useState("");
   const [nullifierHash, setNullifierHash] = useState("");
+  const [root, setRoot] = useState("");
 
   const {
     data: withdrawData,
@@ -64,13 +64,7 @@ export default function Withdraw() {
     console.error("error", error);
   }
 
-  const handleWithdraw = () => {
-    // todo
-    // if (!isConnected) {
-    //   alert("Wallet not connected!");
-    //   return;
-    // }
-
+  async function handleWithdraw() {
     if (selectedToken !== "ETH") {
       alert("This contract only supports ETH (fixed 1ETH) withdraw");
       return;
@@ -94,16 +88,16 @@ export default function Withdraw() {
           address: TORNADO_CONTRACT_ADDRESS,
           functionName: "withdraw",
           args: [
-            root as `0x${string}`,
+            recipient,
             nullifierHash as `0x${string}`,
-            recipient as `0x${string}`,
+            root as `0x${string}`,
           ],
         });
       }, 100);
     } catch (error) {
       console.log("error", error);
     }
-  };
+  }
 
   return (
     <Card className="max-w-md mx-auto">
@@ -127,15 +121,6 @@ export default function Withdraw() {
           </Select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="root">Root</Label>
-          <Input
-            id="root"
-            placeholder="bytes32 root (0x...)"
-            value={root}
-            onChange={(e) => setRoot(e.target.value)}
-          />
-        </div>
-        <div className="space-y-2">
           <Label htmlFor="recipient">Recipient Ethereum Address</Label>
           <Input
             id="recipient"
@@ -151,6 +136,15 @@ export default function Withdraw() {
             placeholder="Enter privacy note"
             value={nullifierHash}
             onChange={(e) => setNullifierHash(e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="root">Root</Label>
+          <Input
+            id="root"
+            placeholder="bytes32 root (0x...)"
+            value={root}
+            onChange={(e) => setRoot(e.target.value)}
           />
         </div>
       </CardContent>
