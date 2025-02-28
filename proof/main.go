@@ -25,24 +25,29 @@ func MiMCHash(inputs ...*big.Int) *big.Int {
 // In a production circuit, this would typically be much larger.
 const TreeDepth = 3
 
-// TornadoCashCircuit defines a simplified Tornado Cash circuit.
-// It proves that a deposit commitment (leaf = hash(Secret, Nullifier))
+// MASPCircuit defines a Multi Asset Shielded Pool circuit.
+// It extends the basic Tornado Cash circuit to support multiple asset types.
+// It proves that a deposit commitment (leaf = hash(Secret, Nullifier, AssetID, Amount))
 // is included in a Merkle tree with a known root and that the nullifier hash
-// (hash(Nullifier)) matches a public input.
-type TornadoCashCircuit struct {
+// (hash(Nullifier, AssetID)) matches a public input.
+type MASPCircuit struct {
 	// Private inputs.
 	Secret       frontend.Variable            `gnark:",secret"`
 	Nullifier    frontend.Variable            `gnark:",secret"`
+	AssetID      frontend.Variable            `gnark:",secret"` // Identifier for the asset type
+	Amount       frontend.Variable            `gnark:",secret"` // Amount of the asset
 	PathElements [TreeDepth]frontend.Variable `gnark:",secret"` // Sibling nodes for the Merkle proof.
 	PathIndices  [TreeDepth]frontend.Variable `gnark:",secret"` // Indicates position: 0 for left, 1 for right.
 
 	// Public inputs.
 	Root          frontend.Variable // The Merkle tree root.
-	NullifierHash frontend.Variable // Hash of the nullifier.
+	NullifierHash frontend.Variable // Hash of the nullifier and asset ID.
+	PublicAssetID frontend.Variable // Public asset ID for verification
+	PublicAmount  frontend.Variable // Public amount for verification
 }
 
 // Define declares the circuit's constraints.
-func (c *TornadoCashCircuit) Define(api frontend.API) error {
+func (c *MASPCircuit) Define(api frontend.API) error {
 	// -----------------------------------------------
 	// 1. Compute the deposit commitment (the leaf)
 	// -----------------------------------------------
@@ -52,6 +57,8 @@ func (c *TornadoCashCircuit) Define(api frontend.API) error {
 	}
 	hCommit.Write(c.Secret)
 	hCommit.Write(c.Nullifier)
+	hCommit.Write(c.AssetID)
+	hCommit.Write(c.Amount)
 	leaf := hCommit.Sum()
 
 	// -------------------------------------------------------
@@ -72,8 +79,15 @@ func (c *TornadoCashCircuit) Define(api frontend.API) error {
 		return err
 	}
 	hNullifier.Write(c.Nullifier)
+	hNullifier.Write(c.AssetID) // Include AssetID in nullifier hash to prevent cross-asset nullifier reuse
 	computedNullifierHash := hNullifier.Sum()
 	api.AssertIsEqual(computedNullifierHash, c.NullifierHash)
+
+	// ---------------------------------------------
+	// 4. Verify the asset ID and amount.
+	// ---------------------------------------------
+	api.AssertIsEqual(c.AssetID, c.PublicAssetID)
+	api.AssertIsEqual(c.Amount, c.PublicAmount)
 
 	return nil
 }
@@ -115,33 +129,60 @@ func computeMerkleRoot(
 	return computedRoot, nil
 }
 
+// AssetType represents different types of assets in the MASP
+type AssetType struct {
+	ID     *big.Int
+	Symbol string
+}
+
+// Define some example asset types
+var (
+	ETH  = AssetType{ID: big.NewInt(1), Symbol: "ETH"}
+	DAI  = AssetType{ID: big.NewInt(2), Symbol: "DAI"}
+	USDC = AssetType{ID: big.NewInt(3), Symbol: "USDC"}
+	USDT = AssetType{ID: big.NewInt(4), Symbol: "USDT"}
+)
+
 func main() {
-	// todo: get the secret and nullifier from the user
+	// Example values for demonstration
 	secret := big.NewInt(123)
 	nullifier := big.NewInt(456)
+
+	// Using ETH as the asset type for this example
+	assetID := ETH.ID
+	amount := big.NewInt(1000000000000000000) // 1 ETH in wei
 
 	sibling0 := big.NewInt(789)
 	sibling1 := big.NewInt(101112)
 	sibling2 := big.NewInt(131415)
 
-	leaf := MiMCHash(secret, nullifier)
+	// Compute the leaf using all commitment components
+	leaf := MiMCHash(secret, nullifier, assetID, amount)
 
+	// Compute the Merkle path
 	level0 := MiMCHash(leaf, sibling0)
 	level1 := MiMCHash(level0, sibling1)
 	root := MiMCHash(level1, sibling2)
 
-	nullifierHash := MiMCHash(nullifier)
+	// Compute the nullifier hash including the asset ID
+	nullifierHash := MiMCHash(nullifier, assetID)
 
-	assignment := &TornadoCashCircuit{
+	// Create the circuit assignment
+	assignment := &MASPCircuit{
 		Secret:        secret,
 		Nullifier:     nullifier,
+		AssetID:       assetID,
+		Amount:        amount,
 		PathElements:  [TreeDepth]frontend.Variable{sibling0, sibling1, sibling2},
 		PathIndices:   [TreeDepth]frontend.Variable{0, 0, 0},
 		Root:          root,
 		NullifierHash: nullifierHash,
+		PublicAssetID: assetID,
+		PublicAmount:  amount,
 	}
 
-	circuit, _ := ecgo.Compile(ecc.BN254.ScalarField(), &TornadoCashCircuit{})
+	// Compile and verify the circuit
+	circuit, _ := ecgo.Compile(ecc.BN254.ScalarField(), &MASPCircuit{})
 	c := circuit.GetLayeredCircuit()
 	os.WriteFile("circuit.txt", c.Serialize(), 0o644)
 	inputSolver := circuit.GetInputSolver()
@@ -149,5 +190,44 @@ func main() {
 	os.WriteFile("witness.txt", witness.Serialize(), 0o644)
 	if !test.CheckCircuit(c, witness) {
 		panic("verification failed")
+	}
+}
+
+// Helper function to demonstrate how to create a deposit
+func createDeposit(secret, nullifier *big.Int, asset AssetType, amount *big.Int) *big.Int {
+	return MiMCHash(secret, nullifier, asset.ID, amount)
+}
+
+// Helper function to demonstrate how to create a withdrawal proof
+func createWithdrawalProof(
+	secret, nullifier *big.Int,
+	asset AssetType,
+	amount *big.Int,
+	merkleProof [TreeDepth]*big.Int,
+	pathIndices [TreeDepth]int,
+) *MASPCircuit {
+	// Convert path indices to big.Int
+	var pathIndicesBigInt [TreeDepth]frontend.Variable
+	for i, idx := range pathIndices {
+		pathIndicesBigInt[i] = big.NewInt(int64(idx))
+	}
+
+	// Convert merkle proof to frontend.Variable
+	var pathElements [TreeDepth]frontend.Variable
+	for i, elem := range merkleProof {
+		pathElements[i] = elem
+	}
+
+	return &MASPCircuit{
+		Secret:        secret,
+		Nullifier:     nullifier,
+		AssetID:       asset.ID,
+		Amount:        amount,
+		PathElements:  pathElements,
+		PathIndices:   pathIndicesBigInt,
+		Root:          nil, // To be computed based on the actual Merkle tree
+		NullifierHash: MiMCHash(nullifier, asset.ID),
+		PublicAssetID: asset.ID,
+		PublicAmount:  amount,
 	}
 }
