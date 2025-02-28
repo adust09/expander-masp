@@ -20,8 +20,8 @@ import {
 } from "@/components/ui/select";
 import { ArrowRightLeft } from "lucide-react";
 import { useWaitForTransactionReceipt, useWriteContract } from "wagmi";
-import { isAddress, zeroAddress } from "viem";
-import { getBalance } from "@wagmi/core";
+import { isAddress, zeroAddress, decodeEventLog, keccak256, toHex } from "viem";
+import { getBalance, readContract } from "@wagmi/core";
 import { config } from "../../config";
 import { ABI, TORNADO_CONTRACT_ADDRESS } from "@/constants/contract";
 import { TOKENS } from "@/constants/tokens";
@@ -32,6 +32,9 @@ export default function Withdraw() {
   const [nullifierHash, setNullifierHash] = useState("");
   const [root, setRoot] = useState("");
   const [message, setMessage] = useState("");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [txLogs, setTxLogs] = useState<any[]>([]);
+  const [contractBalance, setContractBalance] = useState<string>("Loading...");
 
   const {
     data: withdrawData,
@@ -47,6 +50,22 @@ export default function Withdraw() {
         setMessage(
           `Withdraw error (callback): ${err.message || JSON.stringify(err)}`
         );
+
+        // Even if there's an error, we should check for events in the transaction receipt
+        // The transaction might have failed after emitting the event
+        // Use type assertion since TypeScript doesn't know the error structure
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const errorWithReceipt = err as any;
+        if (errorWithReceipt.receipt) {
+          console.log("Error receipt:", errorWithReceipt.receipt);
+          if (
+            errorWithReceipt.receipt.logs &&
+            errorWithReceipt.receipt.logs.length > 0
+          ) {
+            console.log("Error receipt logs:", errorWithReceipt.receipt.logs);
+            setTxLogs(errorWithReceipt.receipt.logs);
+          }
+        }
       },
       onSuccess(data) {
         console.log("Withdraw tx sent:", data);
@@ -55,31 +74,260 @@ export default function Withdraw() {
     },
   });
 
-  const { isSuccess: isTxDone } = useWaitForTransactionReceipt({
-    hash: withdrawData as `0x${string}`,
-  });
+  const { isSuccess: isTxDone, data: txReceipt } = useWaitForTransactionReceipt(
+    {
+      hash: withdrawData as `0x${string}`,
+    }
+  );
 
-  if (isWithdrawSuccess && isTxDone) {
-    alert("Withdraw successful");
-  }
+  useEffect(() => {
+    const fetchTxLogs = async () => {
+      if (isWithdrawSuccess && isTxDone && txReceipt) {
+        try {
+          console.log("Transaction receipt:", txReceipt);
+
+          // Extract logs from the transaction receipt
+          if (txReceipt.logs && txReceipt.logs.length > 0) {
+            console.log("Transaction logs:", txReceipt.logs);
+            setTxLogs(txReceipt.logs);
+
+            // Try to decode the Withdrawal event
+            // Calculate the correct event signature hash dynamically
+            const eventSignature = "Withdrawal(address,bytes32,bytes32)";
+            const calculatedHash = keccak256(toHex(eventSignature));
+
+            console.log("Event signature:", eventSignature);
+            console.log("Calculated hash:", calculatedHash);
+
+            // Try both our calculated hash and a few alternatives
+            const withdrawalEventSignature = calculatedHash;
+            const alternativeHash =
+              "0xe9e508bad6d4c3227e881ca19068f099da81b5164dd6d62b2eaf1e8bc6c34931";
+
+            console.log(
+              "Looking for event with signature:",
+              withdrawalEventSignature
+            );
+            console.log("Alternative hash:", alternativeHash);
+
+            const withdrawalEvent = txReceipt.logs.find((log) => {
+              console.log("Checking log topic:", log.topics?.[0]);
+              return (
+                log.topics &&
+                (log.topics[0] === withdrawalEventSignature ||
+                  log.topics[0] === alternativeHash)
+              );
+            });
+
+            // Log all topics for debugging
+            console.log("All log topics:");
+            txReceipt.logs.forEach((log, index) => {
+              console.log(`Log #${index + 1} topics:`, log.topics);
+
+              // Try to identify if this could be our event by checking if the second topic (first indexed param)
+              // is an address that matches our recipient
+              if (log.topics && log.topics.length >= 2 && log.topics[1]) {
+                const possibleAddress = "0x" + log.topics[1].slice(26); // Extract the last 40 chars (20 bytes) for address
+                console.log(
+                  `Log #${index + 1} possible address:`,
+                  possibleAddress,
+                  "Our recipient:",
+                  recipient
+                );
+              }
+            });
+
+            if (withdrawalEvent) {
+              console.log("Withdrawal event found:", withdrawalEvent);
+
+              try {
+                // Try to decode the event data
+                const decodedEvent = decodeEventLog({
+                  abi: [
+                    {
+                      type: "event",
+                      name: "Withdrawal",
+                      inputs: [
+                        { indexed: true, name: "to", type: "address" },
+                        { indexed: true, name: "nullifier", type: "bytes32" },
+                        { indexed: true, name: "root", type: "bytes32" },
+                      ],
+                    },
+                  ],
+                  data: withdrawalEvent.data,
+                  topics: withdrawalEvent.topics || [],
+                });
+
+                console.log("Decoded Withdrawal event:", decodedEvent);
+                setMessage(
+                  (prev) =>
+                    prev +
+                    "\nWithdrawal event found and decoded!" +
+                    "\nTo: " +
+                    decodedEvent.args.to +
+                    "\nNullifier: " +
+                    decodedEvent.args.nullifier +
+                    "\nRoot: " +
+                    decodedEvent.args.root
+                );
+              } catch (decodeError) {
+                console.error("Error decoding event:", decodeError);
+                setMessage(
+                  (prev) =>
+                    prev + "\nWithdrawal event found but could not be decoded."
+                );
+              }
+            } else {
+              console.log("No Withdrawal event found with exact signature");
+
+              // Try a fallback approach - look for any event with 3 indexed parameters
+              const possibleWithdrawalEvent = txReceipt.logs.find(
+                (log) => log.topics && log.topics.length === 4 // 1 for event signature + 3 indexed params
+              );
+
+              if (possibleWithdrawalEvent) {
+                console.log(
+                  "Found possible Withdrawal event by structure:",
+                  possibleWithdrawalEvent
+                );
+                setMessage(
+                  (prev) =>
+                    prev +
+                    "\nPossible Withdrawal event found by structure (3 indexed parameters)."
+                );
+
+                try {
+                  // Try to decode it assuming it's our event
+                  const decodedEvent = decodeEventLog({
+                    abi: [
+                      {
+                        type: "event",
+                        name: "Withdrawal",
+                        inputs: [
+                          { indexed: true, name: "to", type: "address" },
+                          { indexed: true, name: "nullifier", type: "bytes32" },
+                          { indexed: true, name: "root", type: "bytes32" },
+                        ],
+                      },
+                    ],
+                    data: possibleWithdrawalEvent.data,
+                    topics: possibleWithdrawalEvent.topics || [],
+                  });
+
+                  console.log(
+                    "Decoded possible Withdrawal event:",
+                    decodedEvent
+                  );
+                  setMessage(
+                    (prev) =>
+                      prev +
+                      "\nPossible Withdrawal event decoded!" +
+                      "\nTo: " +
+                      (decodedEvent.args.to || "unknown") +
+                      "\nNullifier: " +
+                      (decodedEvent.args.nullifier || "unknown") +
+                      "\nRoot: " +
+                      (decodedEvent.args.root || "unknown")
+                  );
+                } catch (decodeError) {
+                  console.error("Error decoding possible event:", decodeError);
+                }
+              } else {
+                console.log("No event with 3 indexed parameters found");
+                setMessage(
+                  (prev) => prev + "\nNo Withdrawal event found in logs."
+                );
+              }
+            }
+          } else {
+            console.log("No logs found in transaction receipt");
+            setTxLogs([]);
+            setMessage(
+              (prev) => prev + "\nNo logs found in transaction receipt."
+            );
+          }
+        } catch (error) {
+          console.error("Error fetching transaction logs:", error);
+          setMessage(
+            (prev) =>
+              prev +
+              "\nError fetching transaction logs: " +
+              JSON.stringify(error)
+          );
+        }
+
+        alert("Withdraw transaction completed");
+      }
+    };
+
+    fetchTxLogs();
+  }, [isWithdrawSuccess, isTxDone, txReceipt]);
 
   if (isWithdrawError && withdrawError) {
     console.error("Withdraw error details:", withdrawError);
   }
 
-  useEffect(() => {
-    const fetchBalance = async () => {
+  // Function to fetch and update contract balance
+  const fetchBalance = async () => {
+    try {
+      // Get balance using getBalance
       const balance = await getBalance(config, {
         address: TORNADO_CONTRACT_ADDRESS as `0x${string}`,
         unit: "ether",
         blockTag: "latest",
       });
-      console.log("balance", balance);
-    };
+      console.log("Contract balance from getBalance:", balance);
+
+      // Also try to get balance directly from the contract's contractBalance function
+      try {
+        const contractBalance = await readContract(config, {
+          address: TORNADO_CONTRACT_ADDRESS as `0x${string}`,
+          abi: ABI,
+          functionName: "contractBalance",
+        });
+
+        // Convert from wei to ether
+        const contractBalanceEther = Number(contractBalance) / 10 ** 18;
+        console.log(
+          "Contract balance from contractBalance function:",
+          contractBalanceEther
+        );
+
+        // Use the contract's balance if available
+        setContractBalance(contractBalanceEther.toFixed(4) + " ETH");
+        return contractBalanceEther;
+      } catch (contractError) {
+        console.error(
+          "Error getting balance from contract function:",
+          contractError
+        );
+        // Fall back to getBalance result
+        setContractBalance(String(balance) + " ETH");
+        return balance;
+      }
+    } catch (error) {
+      console.error("Error fetching balance:", error);
+      setContractBalance("Error fetching balance");
+      return null;
+    }
+  };
+
+  // Fetch balance on component mount
+  useEffect(() => {
     fetchBalance();
   }, []);
 
+  // Refetch balance after transaction completion
+  useEffect(() => {
+    if (isWithdrawSuccess && isTxDone) {
+      fetchBalance();
+    }
+  }, [isWithdrawSuccess, isTxDone]);
+
   async function handleWithdraw() {
+    // Clear previous logs when starting a new withdrawal
+    setTxLogs([]);
+
     if (selectedToken !== "ETH") {
       alert("This contract only supports ETH (fixed 1ETH) withdraw");
       return;
@@ -97,16 +345,34 @@ export default function Withdraw() {
       return;
     }
     try {
+      // Log the parameters we're sending to the contract
+      console.log("Withdraw parameters:", {
+        recipient,
+        nullifierHash,
+        root,
+        contractAddress: TORNADO_CONTRACT_ADDRESS,
+      });
+
+      // Ensure nullifierHash and root are properly formatted as bytes32
+      const formattedNullifierHash = nullifierHash.startsWith("0x")
+        ? (nullifierHash as `0x${string}`)
+        : (`0x${nullifierHash}` as `0x${string}`);
+      const formattedRoot = root.startsWith("0x")
+        ? (root as `0x${string}`)
+        : (`0x${root}` as `0x${string}`);
+
+      console.log("Formatted parameters:", {
+        recipient,
+        formattedNullifierHash,
+        formattedRoot,
+      });
+
       setTimeout(() => {
         writeContract({
           abi: ABI,
           address: TORNADO_CONTRACT_ADDRESS,
           functionName: "withdraw",
-          args: [
-            recipient,
-            nullifierHash as `0x${string}`,
-            root as `0x${string}`,
-          ],
+          args: [recipient, formattedNullifierHash, formattedRoot],
         });
       }, 100);
     } catch (err) {
@@ -122,6 +388,18 @@ export default function Withdraw() {
     <Card className="max-w-md mx-auto">
       <CardHeader>
         <CardTitle>Withdraw Funds</CardTitle>
+        <div className="mt-2 text-sm font-medium flex items-center justify-between">
+          <div>
+            Contract Balance:{" "}
+            <span className="text-green-600">{contractBalance}</span>
+          </div>
+          <button
+            onClick={() => fetchBalance()}
+            className="text-xs bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded"
+          >
+            Refresh
+          </button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
@@ -166,7 +444,32 @@ export default function Withdraw() {
             onChange={(e) => setRoot(e.target.value)}
           />
         </div>
-        {message && <p className="text-sm">{message}</p>}
+        {message && <p className="text-sm whitespace-pre-line">{message}</p>}
+
+        {txLogs.length > 0 && (
+          <div className="mt-4 border rounded p-3 bg-gray-50">
+            <h3 className="font-medium mb-2">Transaction Logs:</h3>
+            <div className="max-h-60 overflow-auto text-xs">
+              {txLogs.map((log, index) => (
+                <div key={index} className="mb-2 p-2 border-b">
+                  <div>
+                    <strong>Log #{index + 1}</strong>
+                  </div>
+                  <div>
+                    <strong>Topics:</strong> {log.topics?.join(", ") || "None"}
+                  </div>
+                  <div>
+                    <strong>Data:</strong> {log.data || "None"}
+                  </div>
+                  <div>
+                    <strong>Block:</strong>{" "}
+                    {String(log.blockNumber || "Unknown")}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </CardContent>
       <CardFooter>
         <Button

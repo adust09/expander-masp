@@ -7,6 +7,9 @@ import {
   keccak256,
   toHex,
   parseAbiItem,
+  type PublicClient,
+  type WalletClient,
+  type Account,
 } from "viem";
 import { hardhat, root } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
@@ -39,9 +42,9 @@ const PRIVATE_KEY =
 let TORNADO_ADDRESS: `0x${string}`;
 
 describe("Tornado (Withdraw tests with viem)", () => {
-  let account: any;
-  let publicClient: any;
-  let walletClient: any;
+  let account: Account;
+  let publicClient: PublicClient;
+  let walletClient: WalletClient;
 
   beforeAll(async () => {
     account = privateKeyToAccount(PRIVATE_KEY);
@@ -70,11 +73,14 @@ describe("Tornado (Withdraw tests with viem)", () => {
   });
 
   beforeEach(() => {
-    depositCommitment = toHex("commitment1").padEnd(66, "0") as `0x${string}`;
+    const depositCommitment = toHex("commitment1").padEnd(
+      66,
+      "0"
+    ) as `0x${string}`;
   });
 
   it("Withdraw -> emits Withdraw event", async () => {
-    const proof = toHex("dummy-proof");
+    // proof is no longer needed
     const nullifierHash = toHex("nullifier1").padEnd(66, "0");
 
     const recipientAddress = account.address;
@@ -82,7 +88,7 @@ describe("Tornado (Withdraw tests with viem)", () => {
       address: TORNADO_ADDRESS,
       abi: TornadoArtifact.abi,
       functionName: "withdraw",
-      args: [proof, root, nullifierHash, recipientAddress],
+      args: [recipientAddress, nullifierHash, root],
       chain: hardhatChain,
       account: account,
     });
@@ -120,7 +126,6 @@ describe("Tornado (Withdraw tests with viem)", () => {
     await waitForTransactionReceipt(publicClient, { hash: depositTx });
 
     const root2 = keccak256(commit2);
-    const proof2 = toHex("dummy2");
     const nullifierHash2 = toHex("same-nullifier").padEnd(66, "0");
     const recipientAddress = account.address;
 
@@ -129,7 +134,7 @@ describe("Tornado (Withdraw tests with viem)", () => {
       address: TORNADO_ADDRESS,
       abi: TornadoArtifact.abi,
       functionName: "withdraw",
-      args: [proof2, root2, nullifierHash2, recipientAddress],
+      args: [recipientAddress, nullifierHash2, root2],
       chain: hardhatChain,
       account: account,
     });
@@ -141,7 +146,7 @@ describe("Tornado (Withdraw tests with viem)", () => {
         address: TORNADO_ADDRESS,
         abi: TornadoArtifact.abi,
         functionName: "withdraw",
-        args: [proof2, root2, nullifierHash2, recipientAddress],
+        args: [recipientAddress, nullifierHash2, root2],
         chain: hardhatChain,
         account: account,
       });

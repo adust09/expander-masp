@@ -52,8 +52,8 @@ contract Tornado {
         // bool valid = verifier.verifyProoof(proof, root, nullifierHash, recipient);
         // require(valid,"Invalid proof");
 
-        (bool success, ) = recipient.call{value: 100 ether}("");
-        require(success, "ETH transfer failed");
+        (bool success, ) = recipient.call{value: 1 ether}("");
+        // require(success, "ETH transfer failed");
 
         emit Withdrawal(recipient, nullifierHash, root);
     }
