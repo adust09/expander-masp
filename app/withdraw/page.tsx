@@ -24,7 +24,7 @@ import { isAddress, zeroAddress, decodeEventLog, keccak256, toHex } from "viem";
 import { getBalance, readContract } from "@wagmi/core";
 import { config } from "../../config";
 import { ABI, TORNADO_CONTRACT_ADDRESS } from "@/constants/contract";
-import { TOKENS } from "@/constants/tokens";
+import { TOKENS, getTokenById, getTokenId } from "@/constants/tokens";
 
 export default function Withdraw() {
   const [selectedToken, setSelectedToken] = useState(TOKENS[0].symbol);
@@ -32,9 +32,13 @@ export default function Withdraw() {
   const [nullifierHash, setNullifierHash] = useState("");
   const [root, setRoot] = useState("");
   const [message, setMessage] = useState("");
+  const [withdrawNote, setWithdrawNote] = useState("");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [txLogs, setTxLogs] = useState<any[]>([]);
   const [contractBalance, setContractBalance] = useState<string>("Loading...");
+  const [assetBalances, setAssetBalances] = useState<Record<string, string>>(
+    {}
+  );
 
   const {
     data: withdrawData,
@@ -93,7 +97,8 @@ export default function Withdraw() {
 
             // Try to decode the Withdrawal event
             // Calculate the correct event signature hash dynamically
-            const eventSignature = "Withdrawal(address,bytes32,bytes32)";
+            const eventSignature =
+              "Withdrawal(address,bytes32,bytes32,uint256,uint256)";
             const calculatedHash = keccak256(toHex(eventSignature));
 
             console.log("Event signature:", eventSignature);
@@ -151,12 +156,24 @@ export default function Withdraw() {
                         { indexed: true, name: "to", type: "address" },
                         { indexed: true, name: "nullifier", type: "bytes32" },
                         { indexed: true, name: "root", type: "bytes32" },
+                        { indexed: false, name: "assetId", type: "uint256" },
+                        { indexed: false, name: "amount", type: "uint256" },
                       ],
                     },
                   ],
                   data: withdrawalEvent.data,
                   topics: withdrawalEvent.topics || [],
                 });
+
+                // Get token info based on assetId
+                const assetId = Number(decodedEvent.args.assetId || 0);
+                const token = getTokenById(assetId);
+                const amount = decodedEvent.args.amount
+                  ? (
+                      Number(decodedEvent.args.amount) /
+                      10 ** token.decimals
+                    ).toString()
+                  : "unknown";
 
                 console.log("Decoded Withdrawal event:", decodedEvent);
                 setMessage(
@@ -168,7 +185,11 @@ export default function Withdraw() {
                     "\nNullifier: " +
                     decodedEvent.args.nullifier +
                     "\nRoot: " +
-                    decodedEvent.args.root
+                    decodedEvent.args.root +
+                    "\nAsset: " +
+                    token.symbol +
+                    "\nAmount: " +
+                    amount
                 );
               } catch (decodeError) {
                 console.error("Error decoding event:", decodeError);
@@ -207,6 +228,8 @@ export default function Withdraw() {
                           { indexed: true, name: "to", type: "address" },
                           { indexed: true, name: "nullifier", type: "bytes32" },
                           { indexed: true, name: "root", type: "bytes32" },
+                          { indexed: false, name: "assetId", type: "uint256" },
+                          { indexed: false, name: "amount", type: "uint256" },
                         ],
                       },
                     ],
@@ -227,7 +250,11 @@ export default function Withdraw() {
                       "\nNullifier: " +
                       (decodedEvent.args.nullifier || "unknown") +
                       "\nRoot: " +
-                      (decodedEvent.args.root || "unknown")
+                      (decodedEvent.args.root || "unknown") +
+                      "\nAsset ID: " +
+                      (decodedEvent.args.assetId || "unknown") +
+                      "\nAmount: " +
+                      (decodedEvent.args.amount || "unknown")
                   );
                 } catch (decodeError) {
                   console.error("Error decoding possible event:", decodeError);
@@ -270,13 +297,13 @@ export default function Withdraw() {
   // Function to fetch and update contract balance
   const fetchBalance = async () => {
     try {
-      // Get balance using getBalance
+      // Get ETH balance using getBalance
       const balance = await getBalance(config, {
         address: TORNADO_CONTRACT_ADDRESS as `0x${string}`,
         unit: "ether",
         blockTag: "latest",
       });
-      console.log("Contract balance from getBalance:", balance);
+      console.log("Contract ETH balance from getBalance:", balance);
 
       // Also try to get balance directly from the contract's contractBalance function
       try {
@@ -295,6 +322,32 @@ export default function Withdraw() {
 
         // Use the contract's balance if available
         setContractBalance(contractBalanceEther.toFixed(4) + " ETH");
+
+        // Fetch balances for all tokens
+        const newAssetBalances: Record<string, string> = {};
+
+        for (const token of TOKENS) {
+          try {
+            const assetBalance = await readContract(config, {
+              address: TORNADO_CONTRACT_ADDRESS as `0x${string}`,
+              abi: ABI,
+              functionName: "getAssetBalance",
+              args: [BigInt(token.id)],
+            });
+
+            const formattedBalance = (
+              Number(assetBalance) /
+              10 ** token.decimals
+            ).toFixed(4);
+            newAssetBalances[token.symbol] =
+              formattedBalance + " " + token.symbol;
+          } catch (error) {
+            console.error(`Error fetching ${token.symbol} balance:`, error);
+            newAssetBalances[token.symbol] = "Error";
+          }
+        }
+
+        setAssetBalances(newAssetBalances);
         return contractBalanceEther;
       } catch (contractError) {
         console.error(
@@ -324,14 +377,64 @@ export default function Withdraw() {
     }
   }, [isWithdrawSuccess, isTxDone]);
 
+  // Parse the withdraw note
+  const parseWithdrawNote = (note: string) => {
+    try {
+      const parsedNote = JSON.parse(note);
+
+      // Set the form fields based on the note
+      if (parsedNote.token) {
+        setSelectedToken(parsedNote.token);
+      }
+
+      if (parsedNote.nullifier) {
+        // Convert nullifier to hash
+        const nullifierBytes = new Uint8Array(
+          parsedNote.nullifier
+            .match(/.{1,2}/g)
+            .map((byte: string) => parseInt(byte, 16))
+        );
+        const assetIdBigInt = BigInt(parsedNote.assetId || 1);
+
+        // Create a byte array for the asset ID (32 bytes, big-endian)
+        const assetIdBytes = new Uint8Array(32);
+        for (let i = 0; i < 32; i++) {
+          assetIdBytes[31 - i] = Number(
+            (assetIdBigInt >> BigInt(i * 8)) & BigInt(0xff)
+          );
+        }
+
+        // Combine nullifier and assetId for the nullifier hash
+        const combined = new Uint8Array(
+          nullifierBytes.length + assetIdBytes.length
+        );
+        combined.set(nullifierBytes);
+        combined.set(assetIdBytes, nullifierBytes.length);
+
+        // Generate the nullifier hash
+        const hash = keccak256(combined);
+        setNullifierHash(hash);
+      }
+
+      return parsedNote;
+    } catch (error) {
+      console.error("Error parsing withdraw note:", error);
+      setMessage("Invalid withdraw note format. Please check and try again.");
+      return null;
+    }
+  };
+
   async function handleWithdraw() {
     // Clear previous logs when starting a new withdrawal
     setTxLogs([]);
 
-    if (selectedToken !== "ETH") {
-      alert("This contract only supports ETH (fixed 1ETH) withdraw");
-      return;
+    // If a withdraw note is provided, parse it
+    let parsedNote = null;
+    if (withdrawNote) {
+      parsedNote = parseWithdrawNote(withdrawNote);
+      if (!parsedNote) return;
     }
+
     if (!root || !nullifierHash || !recipient) {
       alert("Please fill in root, nullifierHash, recipient");
       return;
@@ -345,11 +448,21 @@ export default function Withdraw() {
       return;
     }
     try {
+      // Get asset ID and amount
+      const assetId = parsedNote
+        ? BigInt(parsedNote.assetId)
+        : BigInt(getTokenId(selectedToken));
+      const amount = parsedNote
+        ? BigInt(parsedNote.amount)
+        : BigInt(1000000000000000000); // Default to 1 token unit
+
       // Log the parameters we're sending to the contract
       console.log("Withdraw parameters:", {
         recipient,
         nullifierHash,
         root,
+        assetId: assetId.toString(),
+        amount: amount.toString(),
         contractAddress: TORNADO_CONTRACT_ADDRESS,
       });
 
@@ -365,6 +478,8 @@ export default function Withdraw() {
         recipient,
         formattedNullifierHash,
         formattedRoot,
+        assetId: assetId.toString(),
+        amount: amount.toString(),
       });
 
       setTimeout(() => {
@@ -372,7 +487,13 @@ export default function Withdraw() {
           abi: ABI,
           address: TORNADO_CONTRACT_ADDRESS,
           functionName: "withdraw",
-          args: [recipient, formattedNullifierHash, formattedRoot],
+          args: [
+            recipient,
+            formattedNullifierHash,
+            formattedRoot,
+            assetId,
+            amount,
+          ],
         });
       }, 100);
     } catch (err) {
@@ -387,7 +508,7 @@ export default function Withdraw() {
   return (
     <Card className="max-w-md mx-auto">
       <CardHeader>
-        <CardTitle>Withdraw Funds</CardTitle>
+        <CardTitle>Withdraw Funds (MASP)</CardTitle>
         <div className="mt-2 text-sm font-medium flex items-center justify-between">
           <div>
             Contract Balance:{" "}
@@ -400,8 +521,36 @@ export default function Withdraw() {
             Refresh
           </button>
         </div>
+
+        {/* Display balances for all tokens */}
+        <div className="mt-2 text-xs">
+          <h3 className="font-medium mb-1">Asset Balances:</h3>
+          <div className="grid grid-cols-2 gap-2">
+            {Object.entries(assetBalances).map(([symbol, balance]) => (
+              <div key={symbol} className="flex justify-between">
+                <span>{symbol}:</span>
+                <span className="text-blue-600">{balance}</span>
+              </div>
+            ))}
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="withdrawNote">Withdraw Note (Optional)</Label>
+          <textarea
+            id="withdrawNote"
+            className="w-full p-2 border rounded h-24 text-xs"
+            placeholder="Paste your withdraw note here"
+            value={withdrawNote}
+            onChange={(e) => setWithdrawNote(e.target.value)}
+          />
+          <p className="text-xs text-gray-500">
+            If you have a withdraw note from your deposit, paste it here to
+            automatically fill the form.
+          </p>
+        </div>
+
         <div className="space-y-2">
           <Label htmlFor="token">Select Token</Label>
           <Select value={selectedToken} onValueChange={setSelectedToken}>
@@ -427,10 +576,10 @@ export default function Withdraw() {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="note">Privacy Note</Label>
+          <Label htmlFor="note">Nullifier Hash</Label>
           <Input
             id="note"
-            placeholder="Enter privacy note"
+            placeholder="Enter nullifier hash (0x...)"
             value={nullifierHash}
             onChange={(e) => setNullifierHash(e.target.value)}
           />
