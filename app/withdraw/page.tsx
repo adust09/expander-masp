@@ -427,6 +427,7 @@ export default function Withdraw() {
   async function handleWithdraw() {
     // Clear previous logs when starting a new withdrawal
     setTxLogs([]);
+    setMessage("Preparing withdrawal...");
 
     // If a withdraw note is provided, parse it
     let parsedNote = null;
@@ -456,6 +457,64 @@ export default function Withdraw() {
         ? BigInt(parsedNote.amount)
         : BigInt(1000000000000000000); // Default to 1 token unit
 
+      // Generate ZK proof for withdrawal
+      setMessage((prev) => prev + "\nGenerating zero-knowledge proof...");
+
+      // Prepare proof input data
+      // In a real implementation, we would have the actual secret and Merkle proof
+      // For now, we'll use placeholder values
+      const secret = parsedNote?.secret || "123"; // This would come from the note
+      const nullifierValue = parsedNote?.nullifier || "456"; // This would come from the note
+
+      // Mock Merkle proof data - in a real implementation, this would be computed or retrieved
+      const merkleProof = ["789", "101112", "131415"];
+      const pathIndices = [0, 0, 0];
+
+      try {
+        // Call our API to generate the proof
+        const proofResponse = await fetch("/api/createWithdrawalProof", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            secret,
+            nullifier: nullifierValue,
+            assetId: assetId.toString(),
+            amount: amount.toString(),
+            merkleProof,
+            pathIndices,
+          }),
+        });
+
+        if (!proofResponse.ok) {
+          const errorData = await proofResponse.json();
+          throw new Error(`Failed to generate proof: ${errorData.error}`);
+        }
+
+        const proofData = await proofResponse.json();
+        setMessage((prev) => prev + "\nProof generated successfully!");
+
+        // Log the proof data
+        console.log("Generated proof data:", proofData);
+
+        // In a real implementation, we would use the proof data in the contract call
+        // For now, we'll proceed with the existing parameters
+      } catch (proofError) {
+        console.error("Error generating proof:", proofError);
+        setMessage(
+          (prev) =>
+            prev +
+            `\nError generating proof: ${
+              proofError instanceof Error
+                ? proofError.message
+                : String(proofError)
+            }`
+        );
+        // Continue with the withdrawal even if proof generation fails
+        // In a production environment, you might want to abort instead
+      }
+
       // Log the parameters we're sending to the contract
       console.log("Withdraw parameters:", {
         recipient,
@@ -482,6 +541,7 @@ export default function Withdraw() {
         amount: amount.toString(),
       });
 
+      setMessage((prev) => prev + "\nSubmitting withdrawal transaction...");
       setTimeout(() => {
         writeContract({
           abi: ABI,
@@ -493,6 +553,8 @@ export default function Withdraw() {
             formattedRoot,
             assetId,
             amount,
+            // In a real implementation with proof verification enabled in the contract,
+            // we would include the proof data here
           ],
         });
       }, 100);

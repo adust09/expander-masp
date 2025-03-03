@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"os"
@@ -144,8 +145,47 @@ var (
 	USDT = AssetType{ID: big.NewInt(4), Symbol: "USDT"}
 )
 
+// ProofInput represents the input parameters for proof generation
+type ProofInput struct {
+	Secret      string   `json:"secret"`
+	Nullifier   string   `json:"nullifier"`
+	AssetID     string   `json:"assetId"`
+	Amount      string   `json:"amount"`
+	MerkleProof []string `json:"merkleProof"`
+	PathIndices []int    `json:"pathIndices"`
+}
+
+// ProofOutput represents the output of the proof generation
+type ProofOutput struct {
+	Proof         string `json:"proof"`
+	Root          string `json:"root"`
+	NullifierHash string `json:"nullifierHash"`
+	PublicAssetID string `json:"publicAssetId"`
+	PublicAmount  string `json:"publicAmount"`
+}
+
 func main() {
-	// Example values for demonstration
+	// Check if we're being called with command-line arguments
+	if len(os.Args) > 1 && os.Args[1] == "generate-proof" {
+		if len(os.Args) != 3 {
+			fmt.Println("Usage: ./pq-tornado generate-proof '{\"secret\":\"123\",\"nullifier\":\"456\",...}'")
+			os.Exit(1)
+		}
+
+		// Parse the JSON input
+		var input ProofInput
+		err := json.Unmarshal([]byte(os.Args[2]), &input)
+		if err != nil {
+			fmt.Printf("Error parsing input JSON: %v\n", err)
+			os.Exit(1)
+		}
+
+		// Generate the proof
+		generateProofFromInput(input)
+		return
+	}
+
+	// Default example for demonstration when run without arguments
 	secret := big.NewInt(123)
 	nullifier := big.NewInt(456)
 
@@ -271,4 +311,135 @@ func createWithdrawalProof(
 		PublicAssetID: asset.ID,
 		PublicAmount:  amount,
 	}
+}
+
+// generateProofFromInput processes the input from the API and generates a proof
+func generateProofFromInput(input ProofInput) {
+	// Convert string inputs to big.Int
+	secret := new(big.Int)
+	secret.SetString(input.Secret, 10)
+
+	nullifier := new(big.Int)
+	nullifier.SetString(input.Nullifier, 10)
+
+	assetID := new(big.Int)
+	assetID.SetString(input.AssetID, 10)
+
+	amount := new(big.Int)
+	amount.SetString(input.Amount, 10)
+
+	// Create asset type
+	asset := AssetType{ID: assetID, Symbol: "CUSTOM"}
+
+	// Convert merkle proof strings to big.Int array
+	var merkleProof [TreeDepth]*big.Int
+	for i, proofElem := range input.MerkleProof {
+		if i >= TreeDepth {
+			break
+		}
+		merkleProof[i] = new(big.Int)
+		merkleProof[i].SetString(proofElem, 10)
+	}
+
+	// Convert path indices
+	var pathIndices [TreeDepth]int
+	for i, idx := range input.PathIndices {
+		if i >= TreeDepth {
+			break
+		}
+		pathIndices[i] = idx
+	}
+
+	// Create the circuit assignment using the helper function
+	assignment := createWithdrawalProof(
+		secret,
+		nullifier,
+		asset,
+		amount,
+		merkleProof,
+		pathIndices,
+	)
+
+	// Compute the leaf and root
+	leaf := MiMCHash(secret, nullifier, assetID, amount)
+
+	// Compute the Merkle path to get the root
+	currentNode := leaf
+	for i := 0; i < TreeDepth; i++ {
+		sibling := merkleProof[i]
+		if pathIndices[i] == 0 {
+			// Current node is left child
+			currentNode = MiMCHash(currentNode, sibling)
+		} else {
+			// Current node is right child
+			currentNode = MiMCHash(sibling, currentNode)
+		}
+	}
+
+	// Set the computed root
+	root := currentNode
+	assignment.Root = root
+
+	// Compute the nullifier hash
+	nullifierHash := MiMCHash(nullifier, assetID)
+	assignment.NullifierHash = nullifierHash
+
+	// Create output directory for verification artifacts
+	outputDir := "ethereum_verifier"
+	if err := os.MkdirAll(outputDir, 0755); err != nil {
+		fmt.Printf("Failed to create output directory: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Generate the proof
+	fmt.Println("Compiling and verifying circuit with Expander...")
+	circuit, err := ecgo.Compile(ecc.BN254.ScalarField(), &MASPCircuit{})
+	if err != nil {
+		fmt.Printf("Failed to compile circuit: %v\n", err)
+		os.Exit(1)
+	}
+
+	c := circuit.GetLayeredCircuit()
+	os.WriteFile("circuit.txt", c.Serialize(), 0o644)
+
+	inputSolver := circuit.GetInputSolver()
+	witness, err := inputSolver.SolveInputAuto(assignment)
+	if err != nil {
+		fmt.Printf("Failed to solve inputs: %v\n", err)
+		os.Exit(1)
+	}
+
+	os.WriteFile("witness.txt", witness.Serialize(), 0o644)
+
+	if !test.CheckCircuit(c, witness) {
+		fmt.Println("Expander circuit verification failed")
+		os.Exit(1)
+	}
+
+	// Generate proof for Ethereum verification
+	fmt.Println("Generating proof for Ethereum verification...")
+	emptyCircuit := &MASPCircuit{}
+	err = GenerateGroth16Proof(emptyCircuit, assignment, outputDir)
+	if err != nil {
+		fmt.Printf("Failed to generate proof: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Create the output structure
+	output := ProofOutput{
+		Proof:         "proof.bin", // Just the filename, in a real implementation we'd encode the actual proof
+		Root:          root.String(),
+		NullifierHash: nullifierHash.String(),
+		PublicAssetID: assetID.String(),
+		PublicAmount:  amount.String(),
+	}
+
+	// Output the result as JSON
+	outputJSON, err := json.Marshal(output)
+	if err != nil {
+		fmt.Printf("Failed to marshal output to JSON: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Println(string(outputJSON))
 }
