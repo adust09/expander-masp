@@ -1,4 +1,5 @@
-export const TORNADO_CONTRACT_ADDRESS = "0x0165878A594ca255338adfa4d48449f69242Eb8F";
+export const TORNADO_CONTRACT_ADDRESS =
+  "0x73511669fd4de447fed18bb79bafeac93ab7f31f";
 
 export const ABI = [
   {
@@ -41,21 +42,21 @@ export const ABI = [
     name: "getCurrentRoot",
     stateMutability: "view",
     inputs: [],
-    outputs: [{ type: "bytes32" }],
+    outputs: [{ name: "root", type: "bytes32" }],
   },
   {
     type: "function",
     name: "contractBalance",
     stateMutability: "view",
     inputs: [],
-    outputs: [{ type: "uint256" }],
+    outputs: [{ name: "balance", type: "uint256" }],
   },
   {
     type: "function",
     name: "getAssetBalance",
     stateMutability: "view",
     inputs: [{ name: "assetId", type: "uint256" }],
-    outputs: [{ type: "uint256" }],
+    outputs: [{ name: "balance", type: "uint256" }],
   },
   {
     type: "event",

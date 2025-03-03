@@ -1,53 +1,48 @@
-import { ethers } from "hardhat";
+import { createWalletClient, http } from "viem";
+import { localhost } from "viem/chains";
+import { privateKeyToAccount } from "viem/accounts";
+import { deployContract } from "viem/actions";
+
+import TornadoArtifact from "../artifacts/contracts/TornadoMASP.sol/TornadoMASP.json";
+
+const hardhatChain = {
+  ...localhost,
+  id: 1337,
+  network: "hardhat",
+  rpcUrls: {
+    default: { http: ["http://127.0.0.1:8545"] },
+    public: { http: ["http://127.0.0.1:8545"] },
+  },
+};
 
 async function main() {
-  console.log("Deploying TornadoMASP contract...");
+  const PRIVATE_KEY =
+    "0xdf57089febbacf7ba0bc227dafbffa9fc08a93fdc68e1e42411a14efcf23656e";
 
-  // Deploy the TornadoMASP contract
-  const TornadoMASP = await ethers.getContractFactory("TornadoMASP");
-  const tornadoMASP = await TornadoMASP.deploy();
+  const account = privateKeyToAccount(PRIVATE_KEY);
 
-  await tornadoMASP.waitForDeployment();
+  const walletClient = createWalletClient({
+    chain: hardhatChain,
+    account,
+    transport: http(),
+  });
 
-  const address = await tornadoMASP.getAddress();
-  console.log(`TornadoMASP deployed to: ${address}`);
+  const abi = TornadoArtifact.abi;
+  const bytecode = TornadoArtifact.bytecode as `0x${string}`;
 
-  // Register some example tokens (in a real deployment, you would do this in a separate transaction)
-  console.log("Registering example tokens...");
+  console.log("Deploying Tornado...");
 
-  // DAI (ID: 2)
-  await tornadoMASP.addAsset(
-    2,
-    "0x6b175474e89094c44da98b954eedeac495271d0f", // DAI address on mainnet
-    "DAI",
-    18
-  );
-  console.log("DAI registered with ID 2");
+  const hash = await deployContract(walletClient, {
+    abi,
+    account,
+    bytecode,
+    args: [],
+  });
 
-  // USDC (ID: 3)
-  await tornadoMASP.addAsset(
-    3,
-    "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", // USDC address on mainnet
-    "USDC",
-    6
-  );
-  console.log("USDC registered with ID 3");
-
-  // USDT (ID: 4)
-  await tornadoMASP.addAsset(
-    4,
-    "0xdac17f958d2ee523a2206206994597c13d831ec7", // USDT address on mainnet
-    "USDT",
-    6
-  );
-  console.log("USDT registered with ID 4");
-
-  console.log("Deployment and token registration complete!");
+  console.log("Deployment transaction hash:", hash);
 }
 
-// We recommend this pattern to be able to use async/await everywhere
-// and properly handle errors.
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
 });
