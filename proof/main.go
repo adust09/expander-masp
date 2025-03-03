@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math/big"
 	"os"
 
@@ -181,16 +182,56 @@ func main() {
 		PublicAmount:  amount,
 	}
 
-	// Compile and verify the circuit
-	circuit, _ := ecgo.Compile(ecc.BN254.ScalarField(), &MASPCircuit{})
+	// Create output directory for verification artifacts
+	outputDir := "ethereum_verifier"
+	if err := os.MkdirAll(outputDir, 0755); err != nil {
+		panic(fmt.Sprintf("Failed to create output directory: %v", err))
+	}
+
+	// Step 1: Compile and verify the circuit using Expander
+	fmt.Println("Compiling and verifying circuit with Expander...")
+	circuit, err := ecgo.Compile(ecc.BN254.ScalarField(), &MASPCircuit{})
+	if err != nil {
+		panic(fmt.Sprintf("Failed to compile circuit: %v", err))
+	}
+
 	c := circuit.GetLayeredCircuit()
 	os.WriteFile("circuit.txt", c.Serialize(), 0o644)
+
 	inputSolver := circuit.GetInputSolver()
-	witness, _ := inputSolver.SolveInputAuto(assignment)
-	os.WriteFile("witness.txt", witness.Serialize(), 0o644)
-	if !test.CheckCircuit(c, witness) {
-		panic("verification failed")
+	witness, err := inputSolver.SolveInputAuto(assignment)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to solve inputs: %v", err))
 	}
+
+	os.WriteFile("witness.txt", witness.Serialize(), 0o644)
+
+	if !test.CheckCircuit(c, witness) {
+		panic("Expander circuit verification failed")
+	}
+	fmt.Println("Expander circuit verification successful")
+
+	// Step 2: Generate Solidity verifier for Ethereum
+	fmt.Println("Generating Solidity verifier for Ethereum...")
+	emptyCircuit := &MASPCircuit{}
+	err = GenerateGroth16SolidityVerifier(emptyCircuit, outputDir)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to generate Solidity verifier: %v", err))
+	}
+
+	// Step 3: Generate proof for Ethereum verification
+	fmt.Println("Generating proof for Ethereum verification...")
+	err = GenerateGroth16Proof(emptyCircuit, assignment, outputDir)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to generate proof: %v", err))
+	}
+
+	fmt.Println("Successfully generated Ethereum verification artifacts in:", outputDir)
+	fmt.Println("- MASPVerifier.sol: Solidity verifier contract")
+	fmt.Println("- proving_key.bin: Proving key for generating proofs")
+	fmt.Println("- verification_key.bin: Verification key for verifying proofs")
+	fmt.Println("- proof.bin: Generated proof")
+	fmt.Println("- calldata_instructions.txt: Instructions for using the proof with the verifier")
 }
 
 // Helper function to demonstrate how to create a deposit

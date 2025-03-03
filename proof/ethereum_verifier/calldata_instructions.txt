@@ -1,0 +1,16 @@
+// Solidity calldata for verifier
+// Use this data to call the verifyProof function in the Solidity verifier contract
+
+// Proof data structure for Solidity:
+// struct Proof {
+//     G1Point a;
+//     G2Point b;
+//     G1Point c;
+// }
+
+// To verify the proof, call the verifyProof function with:
+// verifyProof(proof.a, proof.b, proof.c, publicInputs)
+
+// The proof and public inputs need to be formatted as function parameters
+// You can use web3.js or ethers.js to format and submit this data
+
