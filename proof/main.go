@@ -419,6 +419,15 @@ func generateProofFromInput(input ProofInput) {
 	// Generate proof for Ethereum verification
 	fmt.Println("Generating proof for Ethereum verification...")
 	emptyCircuit := &MASPCircuit{}
+
+	// Generate Solidity verifier for Ethereum
+	err = GenerateGroth16SolidityVerifier(emptyCircuit, outputDir)
+	if err != nil {
+		fmt.Printf("Failed to generate Solidity verifier: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Generate proof
 	err = GenerateGroth16Proof(emptyCircuit, assignment, outputDir)
 	if err != nil {
 		fmt.Printf("Failed to generate proof: %v\n", err)

@@ -61,11 +61,24 @@ func GenerateGroth16SolidityVerifier(circuit frontend.Circuit, outputDir string)
 		return fmt.Errorf("failed to export Solidity verifier: %w", err)
 	}
 
-	// Save the Solidity verifier to a file
+	// Save the Solidity verifier to the output directory
 	err = os.WriteFile(filepath.Join(outputDir, "MASPVerifier.sol"), solidityBuf.Bytes(), 0644)
 	if err != nil {
-		return fmt.Errorf("failed to write Solidity verifier: %w", err)
+		return fmt.Errorf("failed to write Solidity verifier to output directory: %w", err)
 	}
+
+	// Also save the Solidity verifier to the hardhat/contracts directory
+	hardhatContractsDir := "hardhat/contracts"
+	if err := os.MkdirAll(hardhatContractsDir, 0755); err != nil {
+		return fmt.Errorf("failed to create hardhat contracts directory: %w", err)
+	}
+
+	err = os.WriteFile(filepath.Join(hardhatContractsDir, "MASPVerifier.sol"), solidityBuf.Bytes(), 0644)
+	if err != nil {
+		return fmt.Errorf("failed to write Solidity verifier to hardhat contracts directory: %w", err)
+	}
+
+	fmt.Println("Solidity verifier also saved to:", filepath.Join(hardhatContractsDir, "MASPVerifier.sol"))
 
 	fmt.Println("Successfully generated Groth16 Solidity verifier")
 	return nil
