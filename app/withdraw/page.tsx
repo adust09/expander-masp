@@ -461,14 +461,33 @@ export default function Withdraw() {
       setMessage((prev) => prev + "\nGenerating zero-knowledge proof...");
 
       // Prepare proof input data
-      // In a real implementation, we would have the actual secret and Merkle proof
-      // For now, we'll use placeholder values
       const secret = parsedNote?.secret || "123"; // This would come from the note
       const nullifierValue = parsedNote?.nullifier || "456"; // This would come from the note
 
       // Mock Merkle proof data - in a real implementation, this would be computed or retrieved
       const merkleProof = ["789", "101112", "131415"];
       const pathIndices = [0, 0, 0];
+
+      // Default proof array (all zeros) in case proof generation fails
+      let zkProof: readonly [
+        bigint,
+        bigint,
+        bigint,
+        bigint,
+        bigint,
+        bigint,
+        bigint,
+        bigint
+      ] = [
+        BigInt(0),
+        BigInt(0),
+        BigInt(0),
+        BigInt(0),
+        BigInt(0),
+        BigInt(0),
+        BigInt(0),
+        BigInt(0),
+      ];
 
       try {
         // Call our API to generate the proof
@@ -493,13 +512,44 @@ export default function Withdraw() {
         }
 
         const proofData = await proofResponse.json();
-        setMessage((prev) => prev + "\nProof generated successfully!");
+
+        if (proofData.success && proofData.proof) {
+          setMessage((prev) => prev + "\nProof generated successfully!");
+
+          // Convert proof data to the format expected by the contract
+          // The proof should be an array of 8 uint256 values
+          if (Array.isArray(proofData.proof) && proofData.proof.length === 8) {
+            const proofValues = proofData.proof.map((p: string | number) =>
+              BigInt(p)
+            );
+            zkProof = [
+              proofValues[0],
+              proofValues[1],
+              proofValues[2],
+              proofValues[3],
+              proofValues[4],
+              proofValues[5],
+              proofValues[6],
+              proofValues[7],
+            ] as const;
+          } else {
+            console.warn(
+              "Proof data is not in the expected format:",
+              proofData.proof
+            );
+            setMessage(
+              (prev) =>
+                prev +
+                "\nWarning: Proof data is not in the expected format. Using default proof."
+            );
+          }
+        } else {
+          throw new Error("Proof generation failed or returned invalid data");
+        }
 
         // Log the proof data
         console.log("Generated proof data:", proofData);
-
-        // In a real implementation, we would use the proof data in the contract call
-        // For now, we'll proceed with the existing parameters
+        console.log("Formatted proof for contract:", zkProof);
       } catch (proofError) {
         console.error("Error generating proof:", proofError);
         setMessage(
@@ -511,8 +561,12 @@ export default function Withdraw() {
                 : String(proofError)
             }`
         );
-        // Continue with the withdrawal even if proof generation fails
-        // In a production environment, you might want to abort instead
+        setMessage(
+          (prev) =>
+            prev +
+            "\nUsing default proof values. This will likely fail verification."
+        );
+        // We'll continue with default proof values, but this will likely fail verification
       }
 
       // Log the parameters we're sending to the contract
@@ -553,8 +607,7 @@ export default function Withdraw() {
             formattedRoot,
             assetId,
             amount,
-            // In a real implementation with proof verification enabled in the contract,
-            // we would include the proof data here
+            zkProof, // Include the proof data for verification
           ],
         });
       }, 100);

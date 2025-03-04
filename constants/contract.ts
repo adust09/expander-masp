@@ -34,6 +34,7 @@ export const ABI = [
       { name: "root", type: "bytes32" },
       { name: "assetId", type: "uint256" },
       { name: "amount", type: "uint256" },
+      { name: "proof", type: "uint256[8]" },
     ],
     outputs: [],
   },
