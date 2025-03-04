@@ -182,7 +182,7 @@ async function main() {
 
   // For simplicity, we'll use a predefined address for TornadoMASP
   // In a production environment, you would get this from a deployment or configuration
-  const tornadoAddress = "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707";
+  const tornadoAddress = "0x73511669fd4de447fed18bb79bafeac93ab7f31f";
 
   // Define asset IDs for each token
   const DAI_ASSET_ID = 2; // ETH is 1 by default

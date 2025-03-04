@@ -1,5 +1,5 @@
 export const TORNADO_CONTRACT_ADDRESS =
-  "0x73511669fd4de447fed18bb79bafeac93ab7f31f";
+  "0xc92b72ecf468d2642992b195bea99f9b9bb4a838";
 
 export const ABI = [
   {
