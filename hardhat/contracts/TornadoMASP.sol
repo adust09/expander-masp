@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 import "./MerkleTree.sol";
+import "./MASPVerifier.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -35,7 +36,7 @@ contract TornadoMASP is Ownable {
     
     MerkleTree.TreeData private treeData;
     
-    // IVerifier public verifier;
+    MASPVerifier public verifier;
     mapping(bytes32 => bool) public isKnownRoot;
     mapping(bytes32 => bool) public spentNullifiers;
     bytes32 public currentRoot;
@@ -66,11 +67,15 @@ contract TornadoMASP is Ownable {
     
     /**
      * @dev Constructor initializes the contract with ETH as the first asset
+     * @param _verifier The address of the MASPVerifier contract
      */
-    constructor() Ownable(msg.sender) {
+    constructor(address _verifier) Ownable(msg.sender) {
         treeData.init(TREE_DEPTH);
         isKnownRoot[bytes32(0)] = true;
         currentRoot = bytes32(0);
+        
+        // Set the verifier contract
+        verifier = MASPVerifier(_verifier);
         
         // Register ETH as the first asset
         _addAsset(ETH_ASSET_ID, address(0), "ETH", 18);
@@ -172,13 +177,15 @@ contract TornadoMASP is Ownable {
      * @param root The Merkle root
      * @param assetId The asset ID
      * @param amount The amount to withdraw
+     * @param proof The zero-knowledge proof data
      */
     function withdraw(
         address payable recipient,
         bytes32 nullifierHash,
         bytes32 root,
         uint256 assetId,
-        uint256 amount
+        uint256 amount,
+        uint256[8] calldata proof
     ) external {
         require(isKnownRoot[root], "Unknown or invalid root");
         require(!spentNullifiers[nullifierHash], "Nullifier has been spent");
@@ -191,8 +198,16 @@ contract TornadoMASP is Ownable {
         // Update asset balance
         assetBalances[assetId] -= amount;
         
-        // bool valid = verifier.verifyProof(proof, root, nullifierHash, recipient, assetId, amount);
-        // require(valid, "Invalid proof");
+        // Create public inputs array for the verifier
+        uint256[] memory publicInputs = new uint256[](5);
+        publicInputs[0] = uint256(root);
+        publicInputs[1] = uint256(nullifierHash);
+        publicInputs[2] = uint256(uint160(address(recipient)));
+        publicInputs[3] = assetId;
+        publicInputs[4] = amount;
+        
+        // Verify the proof
+        verifier.verifyProof(proof, publicInputs);
         
         // Transfer assets to recipient
         if (assetId == ETH_ASSET_ID) {
