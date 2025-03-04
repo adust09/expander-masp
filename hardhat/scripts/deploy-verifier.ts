@@ -15,7 +15,7 @@ const hardhatChain = {
   },
 };
 
-async function main() {
+export async function deployVerifier() {
   console.log("Starting MASP Verifier deployment...");
 
   const PRIVATE_KEY =
@@ -65,12 +65,15 @@ async function main() {
   }
 }
 
-main()
-  .then((address) => {
-    console.log("Deployment successful! Contract address:", address);
-    process.exit(0);
-  })
-  .catch((err) => {
-    console.error("Deployment failed:", err);
-    process.exit(1);
-  });
+// Only run this directly if not being imported
+if (require.main === module) {
+  deployVerifier()
+    .then((address) => {
+      console.log("Deployment successful! Contract address:", address);
+      process.exit(0);
+    })
+    .catch((err) => {
+      console.error("Deployment failed:", err);
+      process.exit(1);
+    });
+}
