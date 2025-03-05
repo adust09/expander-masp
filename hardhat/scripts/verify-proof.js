@@ -1,5 +1,5 @@
 import { ethers } from "hardhat";
-import fs from "fs";
+// import fs from "fs";
 import path from "path";
 
 async function main() {
@@ -21,7 +21,7 @@ async function main() {
     __dirname,
     "../../proof/ethereum_verifier/proof.bin"
   );
-  const proofBin = fs.readFileSync(proofBinPath);
+  // const proofBin = fs.readFileSync(proofBinPath);
 
   // Convert binary proof to the format expected by the verifier
   // This is a simplified example - in a real application, you would need to
