@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { Hourglass } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -39,16 +40,24 @@ export default function Deposit() {
   const [currentRoot, setCurrentRoot] = useState<`0x${string}`>();
   const [secret, setSecret] = useState<Uint8Array | null>(null);
   const [nullifier, setNullifier] = useState<Uint8Array | null>(null);
+  const [isFetchingBalance, setIsFetchingBalance] = useState(false);
+  const [isDepositing, setIsDepositing] = useState(false);
+  const [isFetchingRoot, setIsFetchingRoot] = useState(false);
 
   useEffect(() => {
     const fetchBalance = async () => {
-      if (address) {
-        const balance = await getBalance(config, {
-          address: address as `0x${string}`,
-          unit: "ether",
-          blockTag: "latest",
-        });
-        setHasBalance(!!balance);
+      setIsFetchingBalance(true);
+      try {
+        if (address) {
+          const balance = await getBalance(config, {
+            address: address as `0x${string}`,
+            unit: "ether",
+            blockTag: "latest",
+          });
+          setHasBalance(!!balance);
+        }
+      } finally {
+        setIsFetchingBalance(false);
       }
     };
     fetchBalance();
@@ -143,6 +152,7 @@ export default function Deposit() {
 
   async function handleDeposit() {
     if (isConnected && hasBalance && amount !== "") {
+      setIsDepositing(true);
       console.log("Generating commitment...");
       try {
         const c = genCommitment();
@@ -183,11 +193,14 @@ export default function Deposit() {
         console.log("Deposit transaction sent.");
       } catch (error) {
         console.error("Deposit failed:", error);
+      } finally {
+        setIsDepositing(false);
       }
     }
   }
 
   async function handleRoot() {
+    setIsFetchingRoot(true);
     try {
       console.log("Fetching latest root...");
       const result = await refetchLatestRoot();
@@ -220,6 +233,8 @@ export default function Deposit() {
     } catch (err) {
       console.error("Unexpected error fetching root:", err);
       alert("Error fetching the current root. Please try again later.");
+    } finally {
+      setIsFetchingRoot(false);
     }
   }
 
@@ -277,7 +292,13 @@ export default function Deposit() {
             onChange={(e) => setAmount(e.target.value)}
           />
         </div>
-        <p className="break-all text-sm">Generated commitment: {commitment}</p>
+        {isFetchingBalance ? (
+          <p className="break-all text-sm">Fetching balance...</p>
+        ) : (
+          <p className="break-all text-sm">
+            Generated commitment: {commitment}
+          </p>
+        )}
 
         {commitment && (
           <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
@@ -313,14 +334,30 @@ export default function Deposit() {
         <Button
           className="w-full bg-purple-600 hover:bg-purple-700"
           onClick={handleDeposit}
+          disabled={isDepositing}
         >
-          <ArrowRightLeft className="mr-2" /> Deposit {selectedToken}
+          {isDepositing ? (
+            <>
+              <Hourglass className="mr-2 animate-spin" /> Depositing...
+            </>
+          ) : (
+            <>
+              <ArrowRightLeft className="mr-2" /> Deposit {selectedToken}
+            </>
+          )}
         </Button>
         <Button
           className="w-full bg-gray-600 hover:bg-gray-700"
           onClick={handleRoot}
+          disabled={isFetchingRoot}
         >
-          Get Latest Root
+          {isFetchingRoot ? (
+            <>
+              <Hourglass className="mr-2 animate-spin" /> Fetching Root...
+            </>
+          ) : (
+            "Get Latest Root"
+          )}
         </Button>
       </CardFooter>
     </Card>
