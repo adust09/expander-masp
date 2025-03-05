@@ -33,7 +33,7 @@ export default function Withdraw() {
   const [nullifierHash, setNullifierHash] = useState("");
   const [root, setRoot] = useState("");
   const [message, setMessage] = useState("");
-  const [withdrawNote, setWithdrawNote] = useState("");
+  const [withdrawNote] = useState("");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [txLogs, setTxLogs] = useState<any[]>([]);
   const [contractBalance, setContractBalance] = useState<string>("Loading...");
@@ -673,21 +673,6 @@ export default function Withdraw() {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="withdrawNote">Withdraw Note (Optional)</Label>
-          <textarea
-            id="withdrawNote"
-            className="w-full p-2 border rounded h-24 text-xs"
-            placeholder="Paste your withdraw note here"
-            value={withdrawNote}
-            onChange={(e) => setWithdrawNote(e.target.value)}
-          />
-          <p className="text-xs text-gray-500">
-            If you have a withdraw note from your deposit, paste it here to
-            automatically fill the form.
-          </p>
-        </div>
-
         <div className="space-y-2">
           <Label htmlFor="token">Select Token</Label>
           <Select value={selectedToken} onValueChange={setSelectedToken}>
