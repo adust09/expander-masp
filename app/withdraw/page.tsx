@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Hourglass } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -39,6 +40,8 @@ export default function Withdraw() {
   const [assetBalances, setAssetBalances] = useState<Record<string, string>>(
     {}
   );
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
+  const [isFetchingBalance, setIsFetchingBalance] = useState(false);
 
   const {
     data: withdrawData,
@@ -296,6 +299,7 @@ export default function Withdraw() {
 
   // Function to fetch and update contract balance
   const fetchBalance = async () => {
+    setIsFetchingBalance(true);
     try {
       // Get ETH balance using getBalance
       const balance = await getBalance(config, {
@@ -362,6 +366,8 @@ export default function Withdraw() {
       console.error("Error fetching balance:", error);
       setContractBalance("Error fetching balance");
       return null;
+    } finally {
+      setIsFetchingBalance(false);
     }
   };
 
@@ -425,6 +431,7 @@ export default function Withdraw() {
   };
 
   async function handleWithdraw() {
+    setIsWithdrawing(true);
     // Clear previous logs when starting a new withdrawal
     setTxLogs([]);
     setMessage("Preparing withdrawal...");
@@ -617,6 +624,8 @@ export default function Withdraw() {
         err instanceof Error ? err.message : JSON.stringify(err);
       setMessage(`Withdraw failed: ${errorMessage}`);
       alert(`Withdraw failed: ${errorMessage}`);
+    } finally {
+      setIsWithdrawing(false);
     }
   }
 
@@ -627,13 +636,26 @@ export default function Withdraw() {
         <div className="mt-2 text-sm font-medium flex items-center justify-between">
           <div>
             Contract Balance:{" "}
-            <span className="text-green-600">{contractBalance}</span>
+            {isFetchingBalance ? (
+              <>
+                <Hourglass className="mr-2 animate-spin" /> Loading...
+              </>
+            ) : (
+              <span className="text-green-600">{contractBalance}</span>
+            )}
           </div>
           <button
             onClick={() => fetchBalance()}
             className="text-xs bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded"
+            disabled={isFetchingBalance}
           >
-            Refresh
+            {isFetchingBalance ? (
+              <>
+                <Hourglass className="mr-2 animate-spin" /> Refreshing...
+              </>
+            ) : (
+              "Refresh"
+            )}
           </button>
         </div>
 
@@ -739,8 +761,17 @@ export default function Withdraw() {
         <Button
           className="w-full bg-purple-600 hover:bg-purple-700"
           onClick={handleWithdraw}
+          disabled={isWithdrawing}
         >
-          <ArrowRightLeft className="mr-2" /> Withdraw {selectedToken}
+          {isWithdrawing ? (
+            <>
+              <Hourglass className="mr-2 animate-spin" /> Withdrawing...
+            </>
+          ) : (
+            <>
+              <ArrowRightLeft className="mr-2" /> Withdraw {selectedToken}
+            </>
+          )}
         </Button>
       </CardFooter>
     </Card>
