@@ -66,13 +66,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Parse the proof from stdout
-    const proofData = JSON.parse(stdout);
+    // Try to parse the proof from stdout
+    try {
+      const jsonStartIndex = stdout.indexOf('{"success":');
+      if (jsonStartIndex === -1) {
+        console.error("No JSON output found in stdout:", stdout);
+        return NextResponse.json(
+          {
+            success: false,
+            error: "No JSON output found in proof generation",
+          },
+          { status: 500 }
+        );
+      }
 
-    return NextResponse.json({
-      success: true,
-      proof: proofData,
-    });
+      const jsonString = stdout.substring(jsonStartIndex);
+      const proofData = JSON.parse(jsonString);
+
+      return NextResponse.json({
+        success: true,
+        proof: proofData,
+      });
+    } catch (parseError) {
+      console.error("Error parsing JSON from stdout:", parseError);
+      console.error("Stdout content:", stdout);
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Failed to parse JSON output from proof generation",
+        },
+        { status: 500 }
+      );
+    }
   } catch (error) {
     console.error("Error generating withdrawal proof:", error);
     return NextResponse.json(
