@@ -10,7 +10,9 @@ import (
 	"github.com/PolyhedraZK/ExpanderCompilerCollection/test"
 	"github.com/consensys/gnark-crypto/ecc"
 	crypto_mimc "github.com/consensys/gnark-crypto/ecc/bn254/fr/mimc"
+	"github.com/consensys/gnark/backend/groth16"
 	"github.com/consensys/gnark/frontend"
+	"github.com/consensys/gnark/frontend/cs/r1cs"
 	"github.com/consensys/gnark/std/hash/mimc"
 )
 
@@ -265,7 +267,38 @@ func main() {
 	if err != nil {
 		panic(fmt.Sprintf("Failed to generate proof: %v", err))
 	}
+}
 
+func GenerateGroth16SolidityVerifier(circuit frontend.Circuit, outputDir string) error {
+	// Create output directory if it doesn't exist
+	if err := os.MkdirAll(outputDir, 0755); err != nil {
+		return fmt.Errorf("failed to create output directory: %w", err)
+	}
+
+	// Compile the circuit to R1CS
+	ccs, err := frontend.Compile(ecc.BN254.ScalarField(), r1cs.NewBuilder, circuit)
+	if err != nil {
+		return fmt.Errorf("failed to compile circuit: %w", err)
+	}
+
+	// Setup: Generate proving and verification keys
+	_, vk, err := groth16.Setup(ccs)
+	if err != nil {
+		return fmt.Errorf("failed to set up proving and verification keys: %w", err)
+	}
+
+	// Generate Solidity verifier
+	f, err := os.Create("MASPVerifier.sol")
+
+	if err != nil {
+		return fmt.Errorf("failed to export Solidity verifier: %w", err)
+	}
+	err = vk.ExportSolidity(f)
+	if err != nil {
+		return err
+	}
+	fmt.Println("Successfully generated Groth16 Solidity verifier")
+	return nil
 }
 
 // Helper function to demonstrate how to create a deposit
