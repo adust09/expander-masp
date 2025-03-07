@@ -115,7 +115,6 @@ export default function Withdraw() {
         recipient
       );
 
-      // Show a notification
       alert("Withdraw transaction completed");
     }
   }, [isWithdrawSuccess, isTxDone, txReceipt, recipient]);

@@ -108,7 +108,6 @@ export async function POST(request: NextRequest) {
       }
 
       // Create a mock proof for testing
-      // This is a hardcoded proof similar to the one in verify-proof.js
       const mockProof = [
         "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
         "0xfedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321",

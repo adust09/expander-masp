@@ -29,6 +29,7 @@ npx hardhat run scripts/deploy-all.ts --network localhost
 ```
 
 This script performs the following steps:
+
 1. Deploys the MASPVerifier contract
 2. Deploys the TornadoMASP contract with the verifier address
 3. Updates the tornado address in deploy-mock-tokens.ts

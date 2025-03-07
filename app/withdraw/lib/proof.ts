@@ -18,6 +18,7 @@ export const generateZKProof = async (
   amount: bigint,
   setMessage: (value: React.SetStateAction<string>) => void
 ): Promise<ZKProof> => {
+  // todo
   // Default proof array (all zeros) in case proof generation fails
   let zkProof: ZKProof = [
     BigInt(0),
@@ -63,12 +64,6 @@ export const generateZKProof = async (
       }),
     });
 
-    console.log("🔍 Frontend: API response status:", proofResponse.status);
-    console.log(
-      "🔍 Frontend: API response headers:",
-      Object.fromEntries(Array.from(proofResponse.headers.entries()))
-    );
-
     // Handle error responses
     if (!proofResponse.ok) {
       const responseText = await proofResponse.text();
@@ -106,14 +101,6 @@ export const generateZKProof = async (
       throw new Error(`Failed to parse proof response: ${responseText}`);
     }
 
-    // Add detailed logging of the API response
-    console.log(
-      "createWithdrawalProof API response:",
-      JSON.stringify(proofData, null, 2)
-    );
-    console.log("Response type:", typeof proofData);
-    console.log("Response structure:", Object.keys(proofData));
-
     // Process the proof data
     if (proofData.success && proofData.proof) {
       setMessage((prev) => prev + "\nProof generated successfully!");
@@ -121,28 +108,80 @@ export const generateZKProof = async (
       console.log("Proof type:", typeof proofData.proof);
       console.log("Is array:", Array.isArray(proofData.proof));
 
-      if (proofData.proof.length) {
+      // Detailed debugging of proof structure
+      if (!Array.isArray(proofData.proof)) {
+        console.log("Proof keys:", Object.keys(proofData.proof));
+        console.log("Proof values:", Object.values(proofData.proof));
+      } else {
         console.log("Proof length:", proofData.proof.length);
-        console.log("First proof element type:", typeof proofData.proof[0]);
       }
 
-      // Convert proof data to the format expected by the contract
-      // The proof should be an array of 8 uint256 values
-      if (Array.isArray(proofData.proof) && proofData.proof.length === 8) {
-        console.log("🔍 Frontend: Converting proof to BigInt values");
+      // Extract proof values, handling different formats
+      let proofValues: bigint[] = [];
 
-        // Convert each proof element to BigInt
-        // For hex strings, we need to ensure they're properly formatted
-        const proofValues = proofData.proof.map((p: string | number) => {
+      if (Array.isArray(proofData.proof) && proofData.proof.length === 8) {
+        // Standard format: array of 8 elements
+        console.log("🔍 Frontend: Standard 8-element proof array");
+        proofValues = proofData.proof.map((p: unknown) => {
           if (typeof p === "string" && p.startsWith("0x")) {
             return BigInt(p);
           } else if (typeof p === "string") {
             return BigInt(`0x${p}`);
           } else {
-            return BigInt(p);
+            return BigInt(String(p));
           }
         });
+      } else if (
+        Array.isArray(proofData.proof) &&
+        proofData.proof.length === 9
+      ) {
+        // Take the first 8 elements from a 9-element array
+        console.log(
+          "🔍 Frontend: Found 9-element proof array, using first 8 elements"
+        );
+        proofValues = proofData.proof.slice(0, 8).map((p: unknown) => {
+          if (typeof p === "string" && p.startsWith("0x")) {
+            return BigInt(p);
+          } else if (typeof p === "string") {
+            return BigInt(`0x${p}`);
+          } else {
+            return BigInt(String(p));
+          }
+        });
+      } else if (
+        !Array.isArray(proofData.proof) &&
+        typeof proofData.proof === "object"
+      ) {
+        // If it's an object with numeric properties, extract values in order
+        console.log("🔍 Frontend: Proof is an object, extracting values");
+        const values = Object.values(proofData.proof);
+        if (values.length >= 8) {
+          proofValues = values.slice(0, 8).map((p: unknown) => {
+            if (typeof p === "string" && p.startsWith("0x")) {
+              return BigInt(p);
+            } else if (typeof p === "string") {
+              return BigInt(`0x${p}`);
+            } else {
+              return BigInt(String(p));
+            }
+          });
+        } else {
+          console.warn("Insufficient values in proof object");
+        }
+      } else {
+        console.warn(
+          "Proof data is not in the expected format:",
+          proofData.proof
+        );
+        setMessage(
+          (prev) =>
+            prev +
+            "\nWarning: Proof data is not in the expected format. Using default proof."
+        );
+      }
 
+      // Only update zkProof if we successfully extracted 8 values
+      if (proofValues.length === 8) {
         console.log(
           "🔍 Frontend: Converted proof values:",
           proofValues.map((v: bigint) => v.toString())
@@ -158,16 +197,6 @@ export const generateZKProof = async (
           proofValues[6],
           proofValues[7],
         ] as const;
-      } else {
-        console.warn(
-          "Proof data is not in the expected format:",
-          proofData.proof
-        );
-        setMessage(
-          (prev) =>
-            prev +
-            "\nWarning: Proof data is not in the expected format. Using default proof."
-        );
       }
     } else {
       throw new Error("Proof generation failed or returned invalid data");
@@ -216,7 +245,7 @@ export const formatProofForContract = (zkProof: ZKProof): ZKProof => {
     zkProof[5],
     zkProof[6],
     zkProof[7],
-  ] as const; // Use 'as const' to make TypeScript recognize this as a fixed-length tuple
+  ] as const;
 
   // Log the exact format of the proof being sent to the contract
   console.log("🔍 Final proof format for contract:", {
@@ -229,3 +258,148 @@ export const formatProofForContract = (zkProof: ZKProof): ZKProof => {
 
   return formattedProof;
 };
+
+/**
+ * Types for the proof data structures
+ */
+interface ProofInput {
+  proof: unknown;
+  publicInputs?: unknown[];
+  success?: boolean;
+}
+
+/**
+ * Structure expected by the verifier contract
+ */
+interface VerifierProofFormat {
+  a: [unknown, unknown];
+  b: [[unknown, unknown], [unknown, unknown]];
+  c: [unknown, unknown];
+  inputs: unknown[];
+}
+
+/**
+ * Type guards to check proof data structure
+ */
+function isProofArray(proof: unknown): proof is unknown[] {
+  return Array.isArray(proof);
+}
+
+function isProofObject(proof: unknown): proof is Record<string, unknown> {
+  return typeof proof === "object" && proof !== null && !Array.isArray(proof);
+}
+
+function hasProofStructure(proof: unknown): proof is {
+  a: unknown;
+  b: unknown;
+  c: unknown;
+} {
+  if (!proof || typeof proof !== "object" || Array.isArray(proof)) {
+    return false;
+  }
+
+  const p = proof as Record<string, unknown>;
+  return "a" in p && "b" in p && "c" in p;
+}
+
+/**
+ * Parse a proof from various formats to the standard format expected by the verifier contract.
+ * @param proofData The proof data from the API or other source
+ * @returns Properly formatted proof structure for the verifier contract
+ */
+export function parseProof(proofData: ProofInput): VerifierProofFormat {
+  if (!proofData) {
+    throw new Error("No proof data provided");
+  }
+
+  console.log("Parsing proof data:", JSON.stringify(proofData, null, 2));
+
+  // Check if proofData.proof is an array
+  const { proof, publicInputs = [] } = proofData;
+  const isArray = isProofArray(proof);
+
+  console.log("Is proof an array?", isArray);
+  if (isArray) {
+    console.log("Proof array length:", proof.length);
+
+    // Case 1: proof is an array of 8 elements
+    if (proof.length === 8) {
+      console.log("Using standard 8-element proof array");
+      return {
+        a: [proof[0], proof[1]],
+        b: [
+          [proof[2], proof[3]],
+          [proof[4], proof[5]],
+        ],
+        c: [proof[6], proof[7]],
+        inputs: publicInputs,
+      };
+    }
+
+    // Case 2: proof is an array of 9 elements (taking the first 8)
+    if (proof.length === 9) {
+      console.log("Using first 8 elements from 9-element proof array");
+      return {
+        a: [proof[0], proof[1]],
+        b: [
+          [proof[2], proof[3]],
+          [proof[4], proof[5]],
+        ],
+        c: [proof[6], proof[7]],
+        inputs: publicInputs,
+      };
+    }
+  }
+
+  // If proof is an object, check for different object structures
+  if (isProofObject(proof)) {
+    console.log("Proof object keys:", Object.keys(proof));
+
+    // Case 3: proof is an object with nested a, b, c structure
+    if (hasProofStructure(proof)) {
+      console.log("Using nested proof object structure");
+      // Safe to access a, b, c as we've verified they exist
+      return {
+        a: proof.a as [unknown, unknown],
+        b: proof.b as [[unknown, unknown], [unknown, unknown]],
+        c: proof.c as [unknown, unknown],
+        inputs: publicInputs,
+      };
+    }
+
+    // Case 4: proof is an object with numeric properties
+    const values = Object.values(proof);
+    if (values.length >= 8) {
+      console.log("Proof is an object with properties, extracting values");
+      return {
+        a: [values[0], values[1]] as [unknown, unknown],
+        b: [
+          [values[2], values[3]] as [unknown, unknown],
+          [values[4], values[5]] as [unknown, unknown],
+        ],
+        c: [values[6], values[7]] as [unknown, unknown],
+        inputs: publicInputs,
+      };
+    }
+  }
+
+  // If we've reached here, none of the known formats matched
+  console.error(
+    "Proof data is not in the expected format:",
+    JSON.stringify(proofData, null, 2)
+  );
+  console.error("Proof type:", typeof proof);
+
+  if (proof) {
+    if (isProofArray(proof)) {
+      console.error("Proof array elements:", proof);
+    } else if (isProofObject(proof)) {
+      console.error("Proof object keys:", Object.keys(proof));
+      for (const key in proof) {
+        console.error(`proof[${key}] =`, typeof proof[key], proof[key]);
+      }
+    }
+  }
+
+  throw new Error("Proof data is not in the expected format");
+}
