@@ -159,11 +159,11 @@ type ProofInput struct {
 
 // ProofOutput represents the output of the proof generation
 type ProofOutput struct {
-	Proof         string `json:"proof"`
-	Root          string `json:"root"`
-	NullifierHash string `json:"nullifierHash"`
-	PublicAssetID string `json:"publicAssetId"`
-	PublicAmount  string `json:"publicAmount"`
+	Proof         groth16.Proof `json:"proof"`
+	Root          string        `json:"root"`
+	NullifierHash string        `json:"nullifierHash"`
+	PublicAssetID string        `json:"publicAssetId"`
+	PublicAmount  string        `json:"publicAmount"`
 }
 
 func main() {
@@ -238,15 +238,12 @@ func main() {
 	}
 
 	c := circuit.GetLayeredCircuit()
-	os.WriteFile("circuit.txt", c.Serialize(), 0o644)
 
 	inputSolver := circuit.GetInputSolver()
 	witness, err := inputSolver.SolveInputAuto(assignment)
 	if err != nil {
 		panic(fmt.Sprintf("Failed to solve inputs: %v", err))
 	}
-
-	os.WriteFile("witness.txt", witness.Serialize(), 0o644)
 
 	if !test.CheckCircuit(c, witness) {
 		panic("Expander circuit verification failed")
@@ -429,7 +426,6 @@ func generateProofFromInput(input ProofInput) groth16.Proof {
 	}
 
 	c := circuit.GetLayeredCircuit()
-	os.WriteFile("circuit.txt", c.Serialize(), 0o644)
 
 	inputSolver := circuit.GetInputSolver()
 	witness, err := inputSolver.SolveInputAuto(assignment)
@@ -437,8 +433,6 @@ func generateProofFromInput(input ProofInput) groth16.Proof {
 		fmt.Printf("Failed to solve inputs: %v\n", err)
 		os.Exit(1)
 	}
-
-	os.WriteFile("witness.txt", witness.Serialize(), 0o644)
 
 	if !test.CheckCircuit(c, witness) {
 		fmt.Println("Expander circuit verification failed")
@@ -450,11 +444,11 @@ func generateProofFromInput(input ProofInput) groth16.Proof {
 	emptyCircuit := &MASPCircuit{}
 
 	// Generate Solidity verifier for Ethereum
-	err = GenerateGroth16SolidityVerifier(emptyCircuit, outputDir)
-	if err != nil {
-		fmt.Printf("Failed to generate Solidity verifier: %v\n", err)
-		os.Exit(1)
-	}
+	// err = GenerateGroth16SolidityVerifier(emptyCircuit, outputDir)
+	// if err != nil {
+	// 	fmt.Printf("Failed to generate Solidity verifier: %v\n", err)
+	// 	os.Exit(1)
+	// }
 
 	// Generate proof
 	var proof groth16.Proof
@@ -466,7 +460,7 @@ func generateProofFromInput(input ProofInput) groth16.Proof {
 
 	// Create the output structure
 	output := ProofOutput{
-		Proof:         "proof.bin", // Just the filename, in a real implementation we'd encode the actual proof
+		Proof:         proof,
 		Root:          root.String(),
 		NullifierHash: nullifierHash.String(),
 		PublicAssetID: assetID.String(),

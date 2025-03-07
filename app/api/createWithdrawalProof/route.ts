@@ -6,7 +6,6 @@ import path from "path";
 const execAsync = promisify(exec);
 
 export async function POST(request: NextRequest) {
-  console.log("🔍 API: createWithdrawalProof called");
   try {
     console.log("🔍 API: Parsing request body");
     const body = await request.json();
