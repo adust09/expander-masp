@@ -90,7 +90,6 @@ export async function POST(request: NextRequest) {
       if (jsonStartIndex !== -1) {
         try {
           jsonString = stdout.substring(jsonStartIndex);
-          console.log("🔍 API: Extracted potential JSON string:", jsonString);
           proofData = JSON.parse(jsonString);
           console.log(
             "🔍 API: Parsed proof data:",
