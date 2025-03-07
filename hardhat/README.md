@@ -12,7 +12,6 @@ npm install
 ```
 
 Start a local Hardhat node:
-
 ```shell
 npx hardhat node
 ```
