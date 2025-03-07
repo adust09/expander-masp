@@ -44,6 +44,7 @@ export async function POST(request: NextRequest) {
       );
     }
     // Format the parameters for the Go program
+    // いらなくね？
     const params = JSON.stringify({
       secret,
       nullifier,

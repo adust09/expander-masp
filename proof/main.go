@@ -183,12 +183,8 @@ func main() {
 			os.Exit(1)
 		}
 
-		// Generate the proof
 		proof, _, _, _, _ := generateProof(input)
-
-		// プルーフデータをJSON形式で出力
-		proofOutput := formatProofForOutput(proof)
-		jsonOutput, err := json.Marshal(proofOutput)
+		jsonOutput, err := json.Marshal(proof)
 		if err != nil {
 			fmt.Printf("Error marshaling proof to JSON: %v\n", err)
 			os.Exit(1)
@@ -416,66 +412,4 @@ func generateProof(input ProofInput) (*groth16.Proof, *big.Int, *big.Int, *big.I
 	}
 
 	return &proof, root, nullifierHash, assetID, amount
-}
-
-// formatProofForOutput converts a Groth16 proof to the expected output format
-func formatProofForOutput(proof *groth16.Proof) ProofOutput {
-	// proofが生成できなかった場合はモックデータを返す
-	if proof == nil {
-		// デバッグ用のモックデータ
-		mockProof := []string{
-			"0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-			"0xfedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321",
-			"0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-			"0xfedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321",
-			"0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-			"0xfedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321",
-			"0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-			"0xfedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321",
-		}
-
-		return ProofOutput{
-			Success: true,
-			Proof:   mockProof,
-		}
-	}
-
-	// プルーフデータを文字列配列に変換
-	// 実際のプルーフデータ構造に基づいて実装する
-	// 注: 以下はプレースホルダーの実装です
-	// 次のコメントアウトされた実装で使用される予定だった変数
-	// var proofStrings []string
-
-	// Groth16のプルーフデータを適切に変換
-	// 以下はサンプル実装なので、実際のproof構造体に合わせて調整が必要
-
-	// 重要: この関数はGroth16の実際の構造体に合わせて修正する必要があります
-	// 以下のコードは概念的な例で、実際のデータ構造がこれと異なる場合は調整してください
-	/*
-		proofStrings[0] = "0x" + hex.EncodeToString(proof.Ar.X.Bytes())
-		proofStrings[1] = "0x" + hex.EncodeToString(proof.Ar.Y.Bytes())
-		proofStrings[2] = "0x" + hex.EncodeToString(proof.Bs[0].X.Bytes())
-		proofStrings[3] = "0x" + hex.EncodeToString(proof.Bs[0].Y.Bytes())
-		proofStrings[4] = "0x" + hex.EncodeToString(proof.Bs[1].X.Bytes())
-		proofStrings[5] = "0x" + hex.EncodeToString(proof.Bs[1].Y.Bytes())
-		proofStrings[6] = "0x" + hex.EncodeToString(proof.C.X.Bytes())
-		proofStrings[7] = "0x" + hex.EncodeToString(proof.C.Y.Bytes())
-	*/
-
-	// デバッグ用に一時的にモックデータを使用
-	mockProof := []string{
-		"0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-		"0xfedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321",
-		"0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-		"0xfedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321",
-		"0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-		"0xfedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321",
-		"0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-		"0xfedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321",
-	}
-
-	return ProofOutput{
-		Success: true,
-		Proof:   mockProof,
-	}
 }

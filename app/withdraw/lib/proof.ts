@@ -18,7 +18,6 @@ export const generateZKProof = async (
   amount: bigint,
   setMessage: (value: React.SetStateAction<string>) => void
 ): Promise<ZKProof> => {
-  // todo
   // Default proof array (all zeros) in case proof generation fails
   let zkProof: ZKProof = [
     BigInt(0),
@@ -33,7 +32,6 @@ export const generateZKProof = async (
 
   setMessage((prev) => prev + "\nGenerating zero-knowledge proof...");
 
-  // todo
   // Mock Merkle proof data - in a real implementation, this would be computed or retrieved
   const merkleProof = ["789", "101112", "131415"];
   const pathIndices = [0, 0, 0];
@@ -50,6 +48,8 @@ export const generateZKProof = async (
     });
 
     // Make the API call
+    // 以下のjsonが返ってくる
+    // {"Ar":{"X":"14767007796529545812580174914623770070374080416551996028147997096523618120766","Y":"8502566237852183246853579574529863064146359515312548227807305544212628600939"},"Krs":{"X":"4611893360550607833571749928712210736095695317484351731817759452592224817575","Y":"6604125858117952073986126589201216306308873207233418741557466138648849932487"},"Bs":{"X":{"A0":"20921599151320613933835576223152244407305598097185227233386955687742037992936","A1":"19168240396961999809259048205095027215709295278192660871564546988937863164169"},"Y":{"A0":"15691709395384633955096803066600371829044312914601019478436683350436599428993","A1":"13594299460771082128211822485053857914641063231321014781006008210015869221395"}},"Commitments":[],"CommitmentPok":{"X":0,"Y":0}}
     const proofResponse = await fetch("/api/createWithdrawalProof", {
       method: "POST",
       headers: {
@@ -98,9 +98,6 @@ export const generateZKProof = async (
     // Process the proof data
     if (proofData.success && proofData.proof) {
       setMessage((prev) => prev + "\nProof generated successfully!");
-      console.log("Proof data:", proofData.proof);
-      console.log("Proof type:", typeof proofData.proof);
-      console.log("Is array:", Array.isArray(proofData.proof));
 
       // Extract proof values, handling different formats
       let proofValues: bigint[] = [];
@@ -187,12 +184,6 @@ export const generateZKProof = async (
     } else {
       throw new Error("Proof generation failed or returned invalid data");
     }
-
-    // Log the proof data
-    console.log("Generated proof data:", proofData); //ここはいい感じ
-    console.log("Formatted proof for contract:", zkProof); //ここで000...が入っている
-    console.log("zkProof type:", typeof zkProof);
-    console.log("zkProof is array:", Array.isArray(zkProof));
   } catch (proofError) {
     console.error("Error generating proof:", proofError);
     setMessage(
@@ -207,7 +198,6 @@ export const generateZKProof = async (
         prev +
         "\nUsing default proof values. This will likely fail verification."
     );
-    // We'll continue with default proof values, but this will likely fail verification
   }
 
   return zkProof;
