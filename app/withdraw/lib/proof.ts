@@ -81,15 +81,8 @@ export const generateZKProof = async (
         );
         throw new Error(`Failed to generate proof: ${responseText}`);
       }
-
-      throw new Error(
-        `Failed to generate proof: ${
-          errorData.error || JSON.stringify(errorData)
-        }`
-      );
     }
 
-    // Parse successful response
     const responseText = await proofResponse.text();
     console.log("🔍 Frontend: API response text:", responseText);
 
@@ -196,8 +189,8 @@ export const generateZKProof = async (
     }
 
     // Log the proof data
-    console.log("Generated proof data:", proofData);
-    console.log("Formatted proof for contract:", zkProof);
+    console.log("Generated proof data:", proofData); //ここはいい感じ
+    console.log("Formatted proof for contract:", zkProof); //ここで000...が入っている
     console.log("zkProof type:", typeof zkProof);
     console.log("zkProof is array:", Array.isArray(zkProof));
   } catch (proofError) {

@@ -1,4 +1,4 @@
-export const TORNADO_CONTRACT_ADDRESS = "0x37dd26d18abec2d311e82177f9fa58e9dc14b579";
+export const TORNADO_CONTRACT_ADDRESS = "0xa39ad940f2a8dd2e4acbedbeb17017c3727a1cfc";
 
 export const ABI = [
   {

@@ -56,11 +56,6 @@ export async function POST(request: NextRequest) {
 
     // Execute the Go program with the parameters
     const proofDir = path.join(process.cwd(), "proof");
-    console.log("🔍 API: Executing Go program in directory:", proofDir);
-    console.log(
-      `🔍 API: Command: cd ${proofDir} && ./pq-tornado generate-proof '${params}'`
-    );
-
     const { stdout, stderr } = await execAsync(
       `cd ${proofDir} && ./pq-tornado generate-proof '${params}'`
     );
