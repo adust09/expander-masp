@@ -305,40 +305,6 @@ func createDeposit(secret, nullifier *big.Int, asset AssetType, amount *big.Int)
 	return MiMCHash(secret, nullifier, asset.ID, amount)
 }
 
-// Helper function to demonstrate how to create a withdrawal proof
-func createWithdrawalProof(
-	secret, nullifier *big.Int,
-	asset AssetType,
-	amount *big.Int,
-	merkleProof [TreeDepth]*big.Int,
-	pathIndices [TreeDepth]int,
-) *MASPCircuit {
-	// Convert path indices to big.Int
-	var pathIndicesBigInt [TreeDepth]frontend.Variable
-	for i, idx := range pathIndices {
-		pathIndicesBigInt[i] = big.NewInt(int64(idx))
-	}
-
-	// Convert merkle proof to frontend.Variable
-	var pathElements [TreeDepth]frontend.Variable
-	for i, elem := range merkleProof {
-		pathElements[i] = elem
-	}
-
-	return &MASPCircuit{
-		Secret:        secret,
-		Nullifier:     nullifier,
-		AssetID:       asset.ID,
-		Amount:        amount,
-		PathElements:  pathElements,
-		PathIndices:   pathIndicesBigInt,
-		Root:          nil, // To be computed based on the actual Merkle tree
-		NullifierHash: MiMCHash(nullifier, asset.ID),
-		PublicAssetID: asset.ID,
-		PublicAmount:  amount,
-	}
-}
-
 // generateProofFromInput processes the input from the API and generates a proof
 func generateProofFromInput(input ProofInput) groth16.Proof {
 	// Convert string inputs to big.Int
@@ -376,15 +342,16 @@ func generateProofFromInput(input ProofInput) groth16.Proof {
 		pathIndices[i] = idx
 	}
 
-	// Create the circuit assignment using the helper function
-	assignment := createWithdrawalProof(
-		secret,
-		nullifier,
-		asset,
-		amount,
-		merkleProof,
-		pathIndices,
-	)
+	var pathIndicesBigInt [TreeDepth]frontend.Variable
+	for i, idx := range pathIndices {
+		pathIndicesBigInt[i] = big.NewInt(int64(idx))
+	}
+
+	// Convert merkle proof to frontend.Variable
+	var pathElements [TreeDepth]frontend.Variable
+	for i, elem := range merkleProof {
+		pathElements[i] = elem
+	}
 
 	// Compute the leaf and root
 	leaf := MiMCHash(secret, nullifier, assetID, amount)
@@ -402,13 +369,22 @@ func generateProofFromInput(input ProofInput) groth16.Proof {
 		}
 	}
 
-	// Set the computed root
 	root := currentNode
-	assignment.Root = root
 
-	// Compute the nullifier hash
 	nullifierHash := MiMCHash(nullifier, assetID)
-	assignment.NullifierHash = nullifierHash
+
+	var assignment = &MASPCircuit{
+		Secret:        secret,
+		Nullifier:     nullifier,
+		AssetID:       asset.ID,
+		Amount:        amount,
+		PathElements:  pathElements,
+		PathIndices:   pathIndicesBigInt,
+		Root:          root, // To be computed based on the actual Merkle tree
+		NullifierHash: nullifierHash,
+		PublicAssetID: asset.ID,
+		PublicAmount:  amount,
+	}
 
 	// Create output directory for verification artifacts
 	outputDir := "ethereum_verifier"
