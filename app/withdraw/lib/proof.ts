@@ -33,6 +33,7 @@ export const generateZKProof = async (
 
   setMessage((prev) => prev + "\nGenerating zero-knowledge proof...");
 
+  // todo
   // Mock Merkle proof data - in a real implementation, this would be computed or retrieved
   const merkleProof = ["789", "101112", "131415"];
   const pathIndices = [0, 0, 0];
@@ -107,14 +108,6 @@ export const generateZKProof = async (
       console.log("Proof data:", proofData.proof);
       console.log("Proof type:", typeof proofData.proof);
       console.log("Is array:", Array.isArray(proofData.proof));
-
-      // Detailed debugging of proof structure
-      if (!Array.isArray(proofData.proof)) {
-        console.log("Proof keys:", Object.keys(proofData.proof));
-        console.log("Proof values:", Object.values(proofData.proof));
-      } else {
-        console.log("Proof length:", proofData.proof.length);
-      }
 
       // Extract proof values, handling different formats
       let proofValues: bigint[] = [];

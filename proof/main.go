@@ -266,12 +266,6 @@ func main() {
 		panic(fmt.Sprintf("Failed to generate proof: %v", err))
 	}
 
-	fmt.Println("Successfully generated Ethereum verification artifacts in:", outputDir)
-	fmt.Println("- MASPVerifier.sol: Solidity verifier contract")
-	fmt.Println("- proving_key.bin: Proving key for generating proofs")
-	fmt.Println("- verification_key.bin: Verification key for verifying proofs")
-	fmt.Println("- proof.bin: Generated proof")
-	fmt.Println("- calldata_instructions.txt: Instructions for using the proof with the verifier")
 }
 
 // Helper function to demonstrate how to create a deposit

@@ -27,31 +27,9 @@ func GenerateGroth16SolidityVerifier(circuit frontend.Circuit, outputDir string)
 	}
 
 	// Setup: Generate proving and verification keys
-	pk, vk, err := groth16.Setup(ccs)
+	_, vk, err := groth16.Setup(ccs)
 	if err != nil {
 		return fmt.Errorf("failed to set up proving and verification keys: %w", err)
-	}
-
-	// Save the proving key to a file
-	pkFile, err := os.Create(filepath.Join(outputDir, "proving_key.bin"))
-	if err != nil {
-		return fmt.Errorf("failed to create proving key file: %w", err)
-	}
-	defer pkFile.Close()
-	_, err = pk.WriteTo(pkFile)
-	if err != nil {
-		return fmt.Errorf("failed to write proving key: %w", err)
-	}
-
-	// Save the verification key to a file
-	vkFile, err := os.Create(filepath.Join(outputDir, "verification_key.bin"))
-	if err != nil {
-		return fmt.Errorf("failed to create verification key file: %w", err)
-	}
-	defer vkFile.Close()
-	_, err = vk.WriteTo(vkFile)
-	if err != nil {
-		return fmt.Errorf("failed to write verification key: %w", err)
 	}
 
 	// Generate Solidity verifier
@@ -61,14 +39,8 @@ func GenerateGroth16SolidityVerifier(circuit frontend.Circuit, outputDir string)
 		return fmt.Errorf("failed to export Solidity verifier: %w", err)
 	}
 
-	// Save the Solidity verifier to the output directory
-	err = os.WriteFile(filepath.Join(outputDir, "MASPVerifier.sol"), solidityBuf.Bytes(), 0644)
-	if err != nil {
-		return fmt.Errorf("failed to write Solidity verifier to output directory: %w", err)
-	}
-
 	// Also save the Solidity verifier to the hardhat/contracts directory
-	hardhatContractsDir := "hardhat/contracts"
+	hardhatContractsDir := "./hardhat/contracts"
 	if err := os.MkdirAll(hardhatContractsDir, 0755); err != nil {
 		return fmt.Errorf("failed to create hardhat contracts directory: %w", err)
 	}
@@ -137,34 +109,7 @@ func GenerateGroth16Proof(circuit frontend.Circuit, assignment frontend.Circuit,
 	if err != nil {
 		return fmt.Errorf("proof verification failed: %w", err)
 	}
-	fmt.Println("Proof verified successfully")
-
-	// Generate calldata for Solidity verifier
-	var calldataBuf bytes.Buffer
-	calldataBuf.WriteString("// Solidity calldata for verifier\n")
-	calldataBuf.WriteString("// Use this data to call the verifyProof function in the Solidity verifier contract\n\n")
-
-	// Format the proof for Solidity calldata
-	calldataBuf.WriteString("// Proof data structure for Solidity:\n")
-	calldataBuf.WriteString("// struct Proof {\n")
-	calldataBuf.WriteString("//     G1Point a;\n")
-	calldataBuf.WriteString("//     G2Point b;\n")
-	calldataBuf.WriteString("//     G1Point c;\n")
-	calldataBuf.WriteString("// }\n\n")
-
-	// Write instructions for using the proof
-	calldataBuf.WriteString("// To verify the proof, call the verifyProof function with:\n")
-	calldataBuf.WriteString("// verifyProof(proof.a, proof.b, proof.c, publicInputs)\n\n")
-
-	calldataBuf.WriteString("// The proof and public inputs need to be formatted as function parameters\n")
-	calldataBuf.WriteString("// You can use web3.js or ethers.js to format and submit this data\n\n")
-
-	// Save the calldata instructions
-	err = os.WriteFile(filepath.Join(outputDir, "calldata_instructions.txt"), calldataBuf.Bytes(), 0644)
-	if err != nil {
-		return fmt.Errorf("failed to write calldata instructions: %w", err)
-	}
-
+	fmt.Println("Proof verified successfully(test)")
 	fmt.Println("Successfully generated Groth16 proof and verification data")
 	return nil
 }

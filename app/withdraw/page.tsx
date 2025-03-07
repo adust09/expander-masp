@@ -205,16 +205,6 @@ export default function Withdraw() {
         setMessage
       );
 
-      // Log the parameters we're sending to the contract
-      console.log("Withdraw parameters:", {
-        recipient,
-        nullifierHash,
-        root,
-        assetId: assetId.toString(),
-        amount: amount.toString(),
-        contractAddress: TORNADO_CONTRACT_ADDRESS,
-      });
-
       // Format parameters for the contract call
       const params = prepareWithdrawParams(
         recipient,
@@ -226,16 +216,6 @@ export default function Withdraw() {
 
       // Format the proof for the contract
       const formattedProof = formatProofForContract(zkProof);
-
-      // Log the exact arguments being sent to the contract
-      console.log("🔍 Contract arguments:", {
-        recipient: params.recipient,
-        nullifierHash: params.formattedNullifierHash,
-        root: params.formattedRoot,
-        assetId: params.assetId.toString(),
-        amount: params.amount.toString(),
-        proofLength: formattedProof.length,
-      });
 
       // Execute the withdrawal with a small delay to allow UI updates
       setTimeout(() => {
@@ -249,7 +229,6 @@ export default function Withdraw() {
         );
       }, 100);
     } catch (err) {
-      console.error("handleWithdraw error:", err);
       const errorMessage =
         err instanceof Error ? err.message : JSON.stringify(err);
       setMessage(`Withdraw failed: ${errorMessage}`);
