@@ -263,7 +263,9 @@ func main() {
 
 	// Step 3: Generate proof for Ethereum verification
 	fmt.Println("Generating proof for Ethereum verification...")
-	err = GenerateGroth16Proof(emptyCircuit, assignment, outputDir)
+	var proof groth16.Proof
+	proof, err = GenerateGroth16Proof(emptyCircuit, assignment, outputDir)
+	print(proof)
 	if err != nil {
 		panic(fmt.Sprintf("Failed to generate proof: %v", err))
 	}
@@ -341,7 +343,7 @@ func createWithdrawalProof(
 }
 
 // generateProofFromInput processes the input from the API and generates a proof
-func generateProofFromInput(input ProofInput) {
+func generateProofFromInput(input ProofInput) groth16.Proof {
 	// Convert string inputs to big.Int
 	secret := new(big.Int)
 	secret.SetString(input.Secret, 10)
@@ -455,7 +457,8 @@ func generateProofFromInput(input ProofInput) {
 	}
 
 	// Generate proof
-	err = GenerateGroth16Proof(emptyCircuit, assignment, outputDir)
+	var proof groth16.Proof
+	proof, err = GenerateGroth16Proof(emptyCircuit, assignment, outputDir)
 	if err != nil {
 		fmt.Printf("Failed to generate proof: %v\n", err)
 		os.Exit(1)
@@ -478,4 +481,5 @@ func generateProofFromInput(input ProofInput) {
 	}
 
 	fmt.Println(string(outputJSON))
+	return proof
 }
