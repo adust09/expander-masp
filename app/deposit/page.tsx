@@ -70,32 +70,21 @@ export default function Deposit() {
     setSecret(newSecret);
     setNullifier(newNullifier);
 
-    // Get asset ID for the selected token
     const assetId = getTokenId(selectedToken);
-
-    // Convert amount to token units
-    const amountValue = toTokenUnit(amount, selectedToken);
-
-    // Convert values to byte arrays for hashing
+    const assetIdBigInt = BigInt(assetId);
     const assetIdBytes = new Uint8Array(32);
+    const amountValue = toTokenUnit(amount, selectedToken);
     const amountBytes = new Uint8Array(32);
 
-    // Convert assetId to bytes (big-endian)
-    const assetIdBigInt = BigInt(assetId);
     for (let i = 0; i < 32; i++) {
       assetIdBytes[31 - i] = Number(
         (assetIdBigInt >> BigInt(i * 8)) & BigInt(0xff)
       );
-    }
-
-    // Convert amount to bytes (big-endian)
-    for (let i = 0; i < 32; i++) {
       amountBytes[31 - i] = Number(
         (amountValue >> BigInt(i * 8)) & BigInt(0xff)
       );
     }
 
-    // Combine all values for the commitment
     const combined = new Uint8Array(
       newSecret.length +
         newNullifier.length +
@@ -110,25 +99,7 @@ export default function Deposit() {
       newSecret.length + newNullifier.length + assetIdBytes.length
     );
 
-    // Generate the commitment hash
-    const commitment = keccak256(combined);
-    console.log("Commitment generated:", commitment);
-    console.log(
-      "Secret:",
-      Array.from(newSecret)
-        .map((b) => b.toString(16).padStart(2, "0"))
-        .join("")
-    );
-    console.log(
-      "Nullifier:",
-      Array.from(newNullifier)
-        .map((b) => b.toString(16).padStart(2, "0"))
-        .join("")
-    );
-    console.log("Asset ID:", assetId);
-    console.log("Amount:", amountValue.toString());
-
-    return commitment;
+    return keccak256(combined);
   }
 
   const { data: depositTxData, writeContract } = useWriteContract({
@@ -257,7 +228,7 @@ export default function Deposit() {
       assetId,
       amount: amountValue,
       token: selectedToken,
-      commitment: commitment.substring(2), // Remove 0x prefix
+      commitment: commitment.substring(2),
     });
   }
 

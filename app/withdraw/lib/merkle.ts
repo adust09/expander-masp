@@ -1,4 +1,4 @@
-import { keccak256, encodePacked } from "viem";
+import { keccak256 } from "viem";
 
 /**
  * Structure of the Merkle proof returned by the API
@@ -22,14 +22,42 @@ export function calculateCommitment(
   assetId: bigint,
   amount: bigint
 ): `0x${string}` {
-  // In a production implementation, you would use a ZK-friendly hash like Poseidon
-  // This is a simplified version using keccak256
-  const encoded = encodePacked(
-    ["string", "string", "uint256", "uint256"],
-    [secret, nullifier, assetId, amount]
+  const secretBytes = hexToBytes(secret);
+  const nullifierBytes = hexToBytes(nullifier);
+
+  const assetIdBytes = new Uint8Array(32);
+  const amountBytes = new Uint8Array(32);
+
+  for (let i = 0; i < 32; i++) {
+    assetIdBytes[31 - i] = Number((assetId >> BigInt(i * 8)) & BigInt(0xff));
+    amountBytes[31 - i] = Number((amount >> BigInt(i * 8)) & BigInt(0xff));
+  }
+
+  const combined = new Uint8Array(
+    secretBytes.length +
+      nullifierBytes.length +
+      assetIdBytes.length +
+      amountBytes.length
+  );
+  combined.set(secretBytes);
+  combined.set(nullifierBytes, secretBytes.length);
+  combined.set(assetIdBytes, secretBytes.length + nullifierBytes.length);
+  combined.set(
+    amountBytes,
+    secretBytes.length + nullifierBytes.length + assetIdBytes.length
   );
 
-  return keccak256(encoded);
+  return keccak256(combined);
+}
+
+function hexToBytes(hex: string): Uint8Array {
+  hex = hex.startsWith("0x") ? hex.substring(2) : hex;
+
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < bytes.length; i++) {
+    bytes[i] = parseInt(hex.substring(i * 2, i * 2 + 2), 16);
+  }
+  return bytes;
 }
 
 /**
