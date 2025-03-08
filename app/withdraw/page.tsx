@@ -26,7 +26,7 @@ import { TOKENS, getTokenId } from "@/constants/tokens";
 import type { TransactionReceipt, Log } from "./lib/types";
 
 // Import utility functions from our library files
-import { generateZKProof, formatProofForContract } from "./lib/proof";
+import { generateZKProof } from "./lib/proof";
 import {
   validateWithdrawInputs,
   prepareWithdrawParams,
@@ -214,9 +214,6 @@ export default function Withdraw() {
         amount
       );
 
-      // Format the proof for the contract
-      const formattedProof = formatProofForContract(zkProof);
-
       // Execute the withdrawal with a small delay to allow UI updates
       setTimeout(() => {
         executeWithdrawTransaction(
@@ -224,7 +221,7 @@ export default function Withdraw() {
           TORNADO_CONTRACT_ADDRESS,
           ABI,
           params,
-          formattedProof,
+          zkProof,
           setMessage
         );
       }, 100);

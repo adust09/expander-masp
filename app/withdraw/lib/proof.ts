@@ -1,6 +1,82 @@
-// Functions related to zero-knowledge proof generation and handling
-
 import { ZKProof } from "./types";
+
+/**
+ * Structure of the proof object returned by the API
+ */
+interface ProofStructure {
+  Ar: { X: string; Y: string };
+  Krs: { X: string; Y: string };
+  Bs: {
+    X: { A0: string; A1: string };
+    Y: { A0: string; A1: string };
+  };
+  Commitments?: unknown[];
+  CommitmentPok?: { X: number; Y: number };
+}
+
+/**
+ * Format the complex proof structure returned by API into an array of 8 BigInt values
+ * @param proofObj The proof object returned by the API
+ * @returns Array of 8 BigInt values in the correct order for contract verification
+ */
+function formatProofStructureToArray(proofObj: ProofStructure): bigint[] {
+  console.log("🔍 Proof structure keys:", Object.keys(proofObj));
+
+  // Validate the proof structure
+  if (!proofObj.Ar || !proofObj.Krs || !proofObj.Bs) {
+    throw new Error(
+      "Proof structure doesn't contain the expected fields: Ar, Krs, Bs"
+    );
+  }
+
+  try {
+    // Extract and convert values in the specific order required by the contract
+    const proofValues = [
+      // Convert all string values to BigInt
+      BigInt(proofObj.Ar.X),
+      BigInt(proofObj.Ar.Y),
+      BigInt(proofObj.Krs.X),
+      BigInt(proofObj.Krs.Y),
+      BigInt(proofObj.Bs.X.A0),
+      BigInt(proofObj.Bs.X.A1),
+      BigInt(proofObj.Bs.Y.A0),
+      BigInt(proofObj.Bs.Y.A1),
+    ];
+
+    console.log(
+      "🔍 Successfully extracted 8 proof values:",
+      proofValues.map((v) => v.toString())
+    );
+
+    return proofValues;
+  } catch (error) {
+    console.error("🔍 Error converting proof values to BigInt:", error);
+    throw new Error("Failed to convert proof values to BigInt format");
+  }
+}
+
+/**
+ * Convert an array of 8 BigInt values to ZKProof type
+ * @param proofValues Array of 8 BigInt values extracted from proof
+ * @returns ZKProof type ready for contract use
+ */
+function createZKProofFromArray(proofValues: bigint[]): ZKProof {
+  if (proofValues.length !== 8) {
+    throw new Error(`Expected 8 proof values, got ${proofValues.length}`);
+  }
+
+  // Convert the array to a fixed-length tuple as required by ZKProof type
+  return [
+    proofValues[0],
+    proofValues[1],
+    proofValues[2],
+    proofValues[3],
+    proofValues[4],
+    proofValues[5],
+    proofValues[6],
+    proofValues[7],
+  ] as const;
+}
 
 /**
  * Generate a zero-knowledge proof for withdrawal
@@ -48,8 +124,6 @@ export const generateZKProof = async (
     });
 
     // Make the API call
-    // 以下のjsonが返ってくる
-    // {"Ar":{"X":"14767007796529545812580174914623770070374080416551996028147997096523618120766","Y":"8502566237852183246853579574529863064146359515312548227807305544212628600939"},"Krs":{"X":"4611893360550607833571749928712210736095695317484351731817759452592224817575","Y":"6604125858117952073986126589201216306308873207233418741557466138648849932487"},"Bs":{"X":{"A0":"20921599151320613933835576223152244407305598097185227233386955687742037992936","A1":"19168240396961999809259048205095027215709295278192660871564546988937863164169"},"Y":{"A0":"15691709395384633955096803066600371829044312914601019478436683350436599428993","A1":"13594299460771082128211822485053857914641063231321014781006008210015869221395"}},"Commitments":[],"CommitmentPok":{"X":0,"Y":0}}
     const proofResponse = await fetch("/api/createWithdrawalProof", {
       method: "POST",
       headers: {
@@ -97,62 +171,27 @@ export const generateZKProof = async (
 
     // Process the proof data
 
-    // ここに入るはず
     if (proofData.success && proofData.proof) {
       setMessage((prev) => prev + "\nProof generated successfully!");
-      console.log("hello");
       // Extract proof values, handling different formats
       let proofValues: bigint[] = [];
 
-      if (Array.isArray(proofData.proof) && proofData.proof.length === 8) {
-        // Standard format: array of 8 elements
-        console.log("🔍 Frontend: Standard 8-element proof array");
-        proofValues = proofData.proof.map((p: unknown) => {
-          if (typeof p === "string" && p.startsWith("0x")) {
-            return BigInt(p);
-          } else if (typeof p === "string") {
-            return BigInt(`0x${p}`);
-          } else {
-            return BigInt(String(p));
-          }
-        });
-      } else if (
-        Array.isArray(proofData.proof) &&
-        proofData.proof.length === 9
-      ) {
-        // Take the first 8 elements from a 9-element array
-        console.log(
-          "🔍 Frontend: Found 9-element proof array, using first 8 elements"
-        );
-        proofValues = proofData.proof.slice(0, 8).map((p: unknown) => {
-          if (typeof p === "string" && p.startsWith("0x")) {
-            return BigInt(p);
-          } else if (typeof p === "string") {
-            return BigInt(`0x${p}`);
-          } else {
-            return BigInt(String(p));
-          }
-        });
-      } else if (
+      if (
         !Array.isArray(proofData.proof) &&
         typeof proofData.proof === "object"
       ) {
-        // If it's an object with numeric properties, extract values in order
         console.log("🔍 Frontend: Proof is an object, extracting values");
-        const values = Object.values(proofData.proof);
-        if (values.length >= 8) {
-          proofValues = values.slice(0, 8).map((p: unknown) => {
-            if (typeof p === "string" && p.startsWith("0x")) {
-              return BigInt(p);
-            } else if (typeof p === "string") {
-              return BigInt(`0x${p}`);
-            } else {
-              return BigInt(String(p));
-            }
-          });
-        } else {
-          console.warn("Insufficient values in proof object");
+
+        try {
+          // Use the utility function to convert the proof structure to array
+          const proof = proofData.proof as ProofStructure;
+          proofValues = formatProofStructureToArray(proof);
+        } catch (error) {
+          console.error("🔍 Error processing proof:", error);
+          throw error; // Re-throw to be caught by the outer try-catch
         }
+        // Convert the array of BigInt values to ZKProof type using the helper function
+        zkProof = createZKProofFromArray(proofValues);
       } else {
         console.warn(
           "Proof data is not in the expected format:",
@@ -163,25 +202,6 @@ export const generateZKProof = async (
             prev +
             "\nWarning: Proof data is not in the expected format. Using default proof."
         );
-      }
-
-      // Only update zkProof if we successfully extracted 8 values
-      if (proofValues.length === 8) {
-        console.log(
-          "🔍 Frontend: Converted proof values:",
-          proofValues.map((v: bigint) => v.toString())
-        );
-
-        zkProof = [
-          proofValues[0],
-          proofValues[1],
-          proofValues[2],
-          proofValues[3],
-          proofValues[4],
-          proofValues[5],
-          proofValues[6],
-          proofValues[7],
-        ] as const;
       }
     } else {
       throw new Error("Proof generation failed or returned invalid data");
@@ -203,38 +223,6 @@ export const generateZKProof = async (
   }
 
   return zkProof;
-};
-
-/**
- * Format ZK proof for contract interaction
- * @param zkProof Raw ZK proof tuple
- * @returns Formatted proof ready for the contract
- */
-export const formatProofForContract = (zkProof: ZKProof): ZKProof => {
-  // Convert the zkProof from a tuple to a proper array
-  // This is crucial because the contract expects a uint256[8] array
-  // Ensure we have exactly 8 elements to satisfy TypeScript
-  const formattedProof = [
-    zkProof[0],
-    zkProof[1],
-    zkProof[2],
-    zkProof[3],
-    zkProof[4],
-    zkProof[5],
-    zkProof[6],
-    zkProof[7],
-  ] as const;
-
-  // Log the exact format of the proof being sent to the contract
-  console.log("🔍 Final proof format for contract:", {
-    type: typeof formattedProof,
-    isArray: Array.isArray(formattedProof),
-    length: formattedProof.length,
-    values: formattedProof.map((v) => v.toString()),
-    valueTypes: formattedProof.map((v) => typeof v),
-  });
-
-  return formattedProof;
 };
 
 /**
