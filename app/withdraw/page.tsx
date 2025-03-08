@@ -173,7 +173,6 @@ export default function Withdraw() {
       }
     }
 
-    // Validate required inputs
     if (
       !validateWithdrawInputs(root, nullifierHash, recipient, writeContract)
     ) {
@@ -193,15 +192,19 @@ export default function Withdraw() {
           : BigInt(1000000000000000000); // Default to 1 token unit
 
       // Prepare proof input data
-      const secret = parsedNote?.secret || "123"; // This would come from the note
-      const nullifierValue = parsedNote?.nullifier || "456"; // This would come from the note
-
+      const secret = parsedNote?.secret || "123";
+      const nullifierValue = parsedNote?.nullifier || "456";
+      const commitment = parsedNote?.commitment || "789";
+      console.log("secret:", secret);
+      console.log("null:", nullifierValue);
+      console.log("commitment", commitment);
       // Generate ZK proof
       const zkProof = await generateZKProof(
         secret,
         nullifierValue,
         assetId,
         amount,
+        commitment,
         setMessage
       );
 

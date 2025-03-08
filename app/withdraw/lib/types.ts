@@ -78,5 +78,6 @@ export interface ParsedNote {
   assetId?: number | string;
   amount?: number | string;
   secret?: string;
+  commitment?: string;
   [key: string]: unknown;
 }

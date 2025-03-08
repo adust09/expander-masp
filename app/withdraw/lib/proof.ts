@@ -1,5 +1,5 @@
 import { ZKProof } from "./types";
-import { getMerkleProof, calculateCommitment, getCurrentRoot } from "./merkle";
+import { getMerkleProof, getCurrentRoot } from "./merkle";
 
 /**
  * Structure of the proof object returned by the API
@@ -93,6 +93,7 @@ export const generateZKProof = async (
   nullifierValue: string,
   assetId: bigint,
   amount: bigint,
+  commitment: string,
   setMessage: (value: React.SetStateAction<string>) => void
 ): Promise<ZKProof> => {
   // Default proof array (all zeros) in case proof generation fails
@@ -109,15 +110,7 @@ export const generateZKProof = async (
 
   setMessage((prev) => prev + "\nGenerating zero-knowledge proof...");
 
-  // Real implementation: Calculate commitment and retrieve Merkle proof
   try {
-    // Calculate the commitment from user inputs
-    const commitment = calculateCommitment(
-      secret,
-      nullifierValue,
-      assetId,
-      amount
-    );
     setMessage((prev) => prev + "\nCalculated commitment: " + commitment);
 
     // Get current Merkle root
@@ -127,7 +120,7 @@ export const generateZKProof = async (
 
     // Get Merkle proof for the commitment
     setMessage((prev) => prev + "\nRetrieving Merkle proof...");
-    const merkleProofData = await getMerkleProof(commitment);
+    const merkleProofData = await getMerkleProof(`0x${commitment}`);
     setMessage((prev) => prev + "\nMerkle proof retrieved!");
 
     // Convert the Merkle proof to the format expected by the API
