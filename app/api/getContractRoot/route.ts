@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { createPublicClient, http } from "viem";
-import { mainnet } from "viem/chains";
-import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/constants/contract";
+import { localhost } from "viem/chains";
+import { TORNADO_CONTRACT_ADDRESS, ABI } from "@/constants/contract";
 
 // Create a public client for read operations
 const publicClient = createPublicClient({
-  chain: mainnet,
+  chain: localhost,
   transport: http(),
 });
 
@@ -20,10 +20,9 @@ export async function GET() {
     try {
       // Call the getCurrentRoot function on the contract
       const root = await publicClient.readContract({
-        address: CONTRACT_ADDRESS as `0x${string}`,
-        abi: CONTRACT_ABI,
+        address: TORNADO_CONTRACT_ADDRESS,
+        abi: ABI,
         functionName: "getCurrentRoot",
-        args: [],
       });
 
       console.log("🌲 getContractRoot API: Current root retrieved:", root);

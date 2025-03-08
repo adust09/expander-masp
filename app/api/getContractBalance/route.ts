@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createPublicClient, http } from "viem";
-import { mainnet } from "viem/chains";
+import { localhost } from "viem/chains";
 import { ABI, TORNADO_CONTRACT_ADDRESS } from "@/constants/contract";
 
 export async function POST(request: NextRequest) {
@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
 
     // Create a public client to interact with the blockchain
     const publicClient = createPublicClient({
-      chain: mainnet,
+      chain: localhost,
       transport: http(),
     });
 

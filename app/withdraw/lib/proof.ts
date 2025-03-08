@@ -1,4 +1,5 @@
 import { ZKProof } from "./types";
+import { getMerkleProof, calculateCommitment, getCurrentRoot } from "./merkle";
 
 /**
  * Structure of the proof object returned by the API
@@ -108,11 +109,33 @@ export const generateZKProof = async (
 
   setMessage((prev) => prev + "\nGenerating zero-knowledge proof...");
 
-  // Mock Merkle proof data - in a real implementation, this would be computed or retrieved
-  const merkleProof = ["789", "101112", "131415"];
-  const pathIndices = [0, 0, 0];
-
+  // Real implementation: Calculate commitment and retrieve Merkle proof
   try {
+    // Calculate the commitment from user inputs
+    const commitment = calculateCommitment(
+      secret,
+      nullifierValue,
+      assetId,
+      amount
+    );
+    setMessage((prev) => prev + "\nCalculated commitment: " + commitment);
+
+    // Get current Merkle root
+    setMessage((prev) => prev + "\nRetrieving current Merkle root...");
+    const root = await getCurrentRoot();
+    setMessage((prev) => prev + "\nCurrent root: " + root);
+
+    // Get Merkle proof for the commitment
+    setMessage((prev) => prev + "\nRetrieving Merkle proof...");
+    const merkleProofData = await getMerkleProof(commitment);
+    setMessage((prev) => prev + "\nMerkle proof retrieved!");
+
+    // Convert the Merkle proof to the format expected by the API
+    const merkleProof = merkleProofData.siblings.map((sibling) =>
+      sibling.toString()
+    );
+    const pathIndices = merkleProofData.pathIndices;
+
     // Call our API to generate the proof
     console.log("🔍 Frontend: Calling createWithdrawalProof API with params:", {
       secret,
@@ -176,9 +199,34 @@ export const generateZKProof = async (
       // Extract proof values, handling different formats
       let proofValues: bigint[] = [];
 
-      if (
-        !Array.isArray(proofData.proof) &&
-        typeof proofData.proof === "object"
+      // Handle different proof format types
+      if (Array.isArray(proofData.proof)) {
+        console.log("🔍 Frontend: Proof is an array, processing directly");
+
+        try {
+          // Convert string or number values to BigInt
+          proofValues = proofData.proof.map((val: unknown) =>
+            typeof val === "string" ? BigInt(val) : BigInt(Number(val))
+          );
+
+          if (proofValues.length === 8) {
+            zkProof = createZKProofFromArray(proofValues);
+            console.log("🔍 Frontend: Successfully processed array proof");
+          } else {
+            console.warn(
+              `🔍 Frontend: Array proof has unexpected length: ${proofValues.length}, expected 8`
+            );
+            throw new Error(
+              `Invalid proof array length: ${proofValues.length}`
+            );
+          }
+        } catch (error) {
+          console.error("🔍 Error processing array proof:", error);
+          throw error; // Re-throw to be caught by the outer try-catch
+        }
+      } else if (
+        typeof proofData.proof === "object" &&
+        proofData.proof !== null
       ) {
         console.log("🔍 Frontend: Proof is an object, extracting values");
 
@@ -186,12 +234,13 @@ export const generateZKProof = async (
           // Use the utility function to convert the proof structure to array
           const proof = proofData.proof as ProofStructure;
           proofValues = formatProofStructureToArray(proof);
+          // Convert the array of BigInt values to ZKProof type using the helper function
+          zkProof = createZKProofFromArray(proofValues);
+          console.log("🔍 Frontend: Successfully processed object proof");
         } catch (error) {
-          console.error("🔍 Error processing proof:", error);
+          console.error("🔍 Error processing proof object:", error);
           throw error; // Re-throw to be caught by the outer try-catch
         }
-        // Convert the array of BigInt values to ZKProof type using the helper function
-        zkProof = createZKProofFromArray(proofValues);
       } else {
         console.warn(
           "Proof data is not in the expected format:",
@@ -202,6 +251,7 @@ export const generateZKProof = async (
             prev +
             "\nWarning: Proof data is not in the expected format. Using default proof."
         );
+        throw new Error("Proof data in unexpected format");
       }
     } else {
       throw new Error("Proof generation failed or returned invalid data");

@@ -1,6 +1,5 @@
 export const TORNADO_CONTRACT_ADDRESS =
-  "0xa39ad940f2a8dd2e4acbedbeb17017c3727a1cfc";
-export const CONTRACT_ADDRESS = TORNADO_CONTRACT_ADDRESS;
+  "0xb581c9264f59bf0289fa76d61b2d0746dce3c30d";
 
 // Define the ABI first
 export const ABI = [
@@ -104,9 +103,6 @@ export const ABI = [
     ],
   },
 ] as const;
-
-// Export the ABI for use in other files
-export const CONTRACT_ABI = ABI;
 
 // Note: This is a mock ABI for the frontend implementation
 // The actual contract would need to be updated to support these functions
