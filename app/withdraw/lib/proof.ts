@@ -96,9 +96,11 @@ export const generateZKProof = async (
     }
 
     // Process the proof data
+
+    // ここに入るはず
     if (proofData.success && proofData.proof) {
       setMessage((prev) => prev + "\nProof generated successfully!");
-
+      console.log("hello");
       // Extract proof values, handling different formats
       let proofValues: bigint[] = [];
 
