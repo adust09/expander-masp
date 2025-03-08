@@ -1,6 +1,29 @@
-export const TORNADO_CONTRACT_ADDRESS = "0xa39ad940f2a8dd2e4acbedbeb17017c3727a1cfc";
+export const TORNADO_CONTRACT_ADDRESS =
+  "0xa39ad940f2a8dd2e4acbedbeb17017c3727a1cfc";
+export const CONTRACT_ADDRESS = TORNADO_CONTRACT_ADDRESS;
 
+// Define the ABI first
 export const ABI = [
+  {
+    type: "function",
+    name: "getMerkleProof",
+    stateMutability: "view",
+    inputs: [{ name: "commitment", type: "bytes32" }],
+    outputs: [
+      { name: "siblings", type: "bytes32[]" },
+      { name: "pathIndices", type: "uint8[]" },
+    ],
+  },
+  {
+    type: "function",
+    name: "findCommitmentIndex",
+    stateMutability: "view",
+    inputs: [{ name: "commitment", type: "bytes32" }],
+    outputs: [
+      { name: "index", type: "uint256" },
+      { name: "found", type: "bool" },
+    ],
+  },
   {
     type: "function",
     name: "depositEth",
@@ -81,6 +104,9 @@ export const ABI = [
     ],
   },
 ] as const;
+
+// Export the ABI for use in other files
+export const CONTRACT_ABI = ABI;
 
 // Note: This is a mock ABI for the frontend implementation
 // The actual contract would need to be updated to support these functions

@@ -271,4 +271,80 @@ contract TornadoMASP is Ownable {
     function isAssetSupported(uint256 assetId) external view returns (bool) {
         return supportedAssets[assetId].isSupported;
     }
+    
+    /**
+     * @dev Check if a commitment exists in the Merkle tree
+     * @param commitment The commitment to check
+     * @return index The index of the commitment in the tree, or type(uint256).max if not found
+     * @return found True if the commitment is found, false otherwise
+     */
+    function findCommitmentIndex(bytes32 commitment) public view returns (uint256 index, bool found) {
+        for (uint256 i = 0; i < treeData.leaves.length; i++) {
+            if (treeData.leaves[i] == commitment) {
+                return (i, true);
+            }
+        }
+        return (type(uint256).max, false);
+    }
+    
+    /**
+     * @dev Get the Merkle proof for a commitment
+     * @param commitment The commitment to get the proof for
+     * @return siblings The sibling nodes of the Merkle path
+     * @return pathIndices The path indices of the Merkle path
+     */
+    function getMerkleProof(bytes32 commitment) external view returns (
+        bytes32[] memory siblings,
+        uint8[] memory pathIndices
+    ) {
+        // Find the commitment in the tree
+        (uint256 index, bool found) = findCommitmentIndex(commitment);
+        require(found, "Commitment not found in the tree");
+        
+        // Initialize arrays
+        siblings = new bytes32[](TREE_DEPTH);
+        pathIndices = new uint8[](TREE_DEPTH);
+        
+        // Calculate the Merkle proof
+        bytes32 currentHash = commitment;
+        bytes32 left;
+        bytes32 right;
+        
+        for (uint8 i = 0; i < TREE_DEPTH; i++) {
+            uint256 neighborIndex;
+            uint8 pathIndex;
+            
+            // Determine if we are left or right node
+            if (index % 2 == 0) {
+                // We are the left node
+                neighborIndex = index + 1;
+                pathIndex = 0;
+                left = currentHash;
+                
+                // If we are at the edge of the tree, use zero value
+                right = neighborIndex < treeData.leaves.length
+                    ? treeData.leaves[neighborIndex]
+                    : bytes32(0);
+            } else {
+                // We are the right node
+                neighborIndex = index - 1;
+                pathIndex = 1;
+                left = treeData.leaves[neighborIndex];
+                right = currentHash;
+            }
+            
+            // Store path information
+            siblings[i] = neighborIndex < treeData.leaves.length
+                ? treeData.leaves[neighborIndex]
+                : bytes32(0);
+            pathIndices[i] = pathIndex;
+            
+            // Move up to the parent
+            currentHash = keccak256(abi.encodePacked(left, right));
+            index = index / 2;
+        }
+        
+        return (siblings, pathIndices);
+    }
+    
 }
