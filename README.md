@@ -32,10 +32,12 @@ This project implements a privacy-focused Multi-Asset Shielded Pool inspired by 
 # Install frontend dependencies
 npm install
 
-# Install smart contract dependencies
+# Setup node
 cd hardhat
-npm install
+npx next node
 ```
+
+>We have a deploy script for smart contract, you can see the README.md in hardhat dir.
 
 ### Smart Contract Deployment
 
@@ -46,7 +48,8 @@ See the [Hardhat README](./hardhat/README.md) for detailed instructions on deplo
 Start the development server:
 
 ```bash
-npm run dev
+npx next build
+npx next start
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the application.

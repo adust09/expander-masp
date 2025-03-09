@@ -9,8 +9,8 @@ import ContextProvider from "@/context";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Privacy Mixer",
-  description: "A Tornadocash-like privacy mixer for cryptocurrencies",
+  title: "Expander MASP",
+  description: "A Tornadocash-like Expander MASP for cryptocurrencies",
 };
 
 export default function RootLayout({

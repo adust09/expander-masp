@@ -7,7 +7,7 @@ export default function Header() {
       <nav className="container mx-auto px-4 flex items-center justify-between">
         <Link href="/" className="text-2xl font-bold flex items-center">
           <Shield className="mr-2" />
-          Privacy Mixer
+          Expander MASP
         </Link>
 
         <ul className="flex items-center space-x-4">

@@ -8,7 +8,7 @@ export default function Compliance() {
       </CardHeader>
       <CardContent className="space-y-4">
         <p>
-          Privacy Mixer is committed to maintaining the highest standards of
+          Expander MASP is committed to maintaining the highest standards of
           compliance with all applicable laws and regulations. Our service is
           designed to enhance privacy in cryptocurrency transactions while
           adhering to legal requirements.

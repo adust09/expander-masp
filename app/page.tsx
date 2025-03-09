@@ -6,7 +6,7 @@ export default function Home() {
   return (
     <div className="text-center">
       <h1 className="text-4xl font-bold mb-6">
-        Welcome to Ethereum Privacy Mixer
+        Welcome to Ethereum Expander MASP
       </h1>
       <p className="text-xl mb-4">
         Enhance your Ethereum and ERC20 token transaction privacy with our
