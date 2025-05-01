@@ -57,11 +57,3 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 ## User Flow
 
 See the [User Flow Documentation](./docs/user-flow.md) for a detailed explanation of the deposit and withdrawal process, including proof generation and verification.
-
-## Learn More
-
-To learn more about the technologies used in this project:
-
-- [Next.js Documentation](https://nextjs.org/docs)
-- [Hardhat Documentation](https://hardhat.org/getting-started/)
-- [Zero-Knowledge Proofs](https://z.cash/technology/zksnarks/)
